@@ -1,0 +1,64 @@
+import { Router } from "express";
+import rateLimit from "express-rate-limit";
+import passport from "../config/passport.js";
+import {
+  register, login, logout, me, socialLogin
+} from "../controllers/authController.js";
+import { requireAuth } from "../middleware/authMiddleware.js";
+
+const router = Router();
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts. Please try again later." }
+});
+
+router.post("/register", authLimiter, register);
+router.post("/login", authLimiter, login);
+router.post("/logout", requireAuth, logout);
+router.get("/me", requireAuth, me);
+
+router.get(
+  "/google",
+  (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(503).json({ message: "Google login is not configured yet." });
+    }
+    next();
+  },
+  passport.authenticate("google", { scope: ["profile", "email"], session: false })
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: `${process.env.CLIENT_URL}/login?error=google_failed`
+  }),
+  socialLogin
+);
+
+router.get(
+  "/facebook",
+  (req, res, next) => {
+    if (!process.env.FACEBOOK_APP_ID || !process.env.FACEBOOK_APP_SECRET) {
+      return res.status(503).json({ message: "Facebook login is not configured yet." });
+    }
+    next();
+  },
+  passport.authenticate("facebook", { scope: ["email"], session: false })
+);
+
+router.get(
+  "/facebook/callback",
+  passport.authenticate("facebook", {
+    session: false,
+    failureRedirect: `${process.env.CLIENT_URL}/login?error=facebook_failed`
+  }),
+  socialLogin
+);
+
+export default router;
