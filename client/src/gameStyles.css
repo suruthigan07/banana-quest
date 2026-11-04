@@ -1,0 +1,54 @@
+select {
+  width: 100%; border: 1px solid #dfe3ed; border-radius: 10px; padding: 13px 14px;
+  color: #172033; background: #fff; font: inherit;
+}
+.game-page { max-width: 920px; margin: 0 auto; padding: 28px 20px 60px; }
+.back-link { display: inline-block; color: #5148e5; font-size: 13px; margin-bottom: 18px; }
+.game-panel { background: #fff; border: 1px solid #e8eaf2; border-radius: 20px; padding: 30px; margin: 12px 0 18px; box-shadow: 0 12px 35px #1b24500a; }
+.game-panel.narrow { max-width: 510px; margin: 20px auto; }
+.game-panel h1 { margin-bottom: 8px; }
+.game-panel h2 { font-size: 17px; margin: 24px 0 12px; }
+.game-topline { display: flex; align-items: center; justify-content: space-between; }
+.room-code { color: #858da0; font-size: 11px; letter-spacing: 1px; }
+.room-code strong { color: #5148e5; font-size: 16px; letter-spacing: 2px; margin-left: 8px; }
+.share-code { font-size: 38px; font-weight: 800; letter-spacing: 8px; color: #5148e5; background: #f0efff; padding: 18px; border-radius: 14px; text-align: center; margin: 22px 0 12px; }
+.player-list { border: 1px solid #edf0f5; border-radius: 12px; padding: 4px 14px; }
+.player-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 2px; border-bottom: 1px solid #eff1f5; font-size: 14px; }
+.player-row:last-child { border-bottom: 0; }
+.game-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.game-heading .eyebrow { margin-top: 0; }
+.timer { min-width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: #eeedff; color: #5148e5; font-size: 22px; font-weight: 800; }
+.timer-ended { background: #fff0ef; color: #b33b32; }
+.timer-track { height: 6px; background: #eceef4; border-radius: 8px; overflow: hidden; margin: 18px 0 24px; }
+.timer-track > div { height: 100%; background: #625be7; transition: width .2s linear; }
+.question-text { font-size: 22px !important; line-height: 1.4; margin: 0 0 20px !important; }
+.answer-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.answer-option { display: flex; align-items: center; gap: 12px; min-height: 62px; text-align: left; padding: 12px; border: 1px solid #e0e4ee; border-radius: 12px; background: white; cursor: pointer; color: #273149; font-weight: 600; }
+.answer-option span { width: 30px; height: 30px; display: grid; place-items: center; flex: 0 0 30px; border-radius: 8px; background: #f0f1f7; color: #697386; }
+.answer-option:hover:not(:disabled), .answer-selected { border-color: #625be7; background: #f7f6ff; }
+.answer-option:disabled { cursor: default; opacity: .75; }
+.game-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; }
+.game-actions .primary-button { margin: 0; padding: 12px 18px; }
+.result-strip { margin-top: 18px; padding: 14px; border-radius: 11px; font-size: 14px; }
+.result-strip.correct { background: #eaf8ef; color: #167344; }
+.result-strip.incorrect { background: #fff3ed; color: #a54b24; }
+.result-strip p { margin: 6px 0 0; font-size: 12px; }
+.leaderboard-panel { padding-top: 12px; }
+.leaderboard-panel h2 { margin-top: 8px; }
+.final-row { font-size: 16px; }
+.answer-history { display: grid; gap: 5px; padding: 12px 0; border-bottom: 1px solid #edf0f5; font-size: 13px; }
+.answer-history span { color: #7a8294; }
+.primary-link { display: inline-block; background: #5148e5; color: white; padding: 13px 18px; border-radius: 10px; margin-top: 20px; }
+.game-launch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 26px 0 18px; }
+.launch-card { display: grid; gap: 9px; padding: 23px; background: white; border: 1px solid #e8eaf2; border-radius: 16px; color: #172033; transition: transform .15s, border-color .15s; }
+.launch-card:hover { transform: translateY(-2px); border-color: #aaa6f4; }
+.launch-card strong { font-size: 17px; }
+.launch-card > span:last-child { color: #7a8294; font-size: 13px; font-weight: 400; line-height: 1.5; }
+.launch-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #eeedff; color: #5148e5; font-size: 24px; }
+@media (max-width: 600px) {
+  .game-panel { padding: 21px 17px; }
+  .answer-options, .game-launch-grid { grid-template-columns: 1fr; }
+  .game-heading { align-items: flex-start; }
+  .question-text { font-size: 19px !important; }
+  .game-actions { align-items: stretch; flex-direction: column; }
+}
