@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import {
   getGame, startGame, submitAnswer, nextQuestion, getGameAnswers
 } from "../services/gameService";
+import { getGameSocket } from "../services/socketService";
 
 export default function GameRoom({ user }) {
   const { roomCode } = useParams();
@@ -29,10 +30,40 @@ export default function GameRoom({ user }) {
   }, [roomCode]);
 
   useEffect(() => {
+    const socket = getGameSocket();
+    let active = true;
+
+    const joinRoom = () => {
+      socket.emit("room:join", roomCode, (response) => {
+        if (!active) return;
+        if (!response?.ok) setError(response?.message || "Could not join live updates.");
+        else refresh();
+      });
+    };
+    const handleUpdate = (payload) => {
+      if (payload?.roomCode === roomCode.toUpperCase()) refresh();
+    };
+    const handleConnectError = (err) => {
+      if (active) setError(err.message || "Live connection failed. Check your login.");
+    };
+
+    socket.on("connect", joinRoom);
+    socket.on("game:updated", handleUpdate);
+    socket.on("leaderboard:updated", handleUpdate);
+    socket.on("connect_error", handleConnectError);
     refresh();
-    const poll = window.setInterval(refresh, 1500);
-    return () => window.clearInterval(poll);
-  }, [refresh]);
+    if (!socket.connected) socket.connect();
+    else joinRoom();
+
+    return () => {
+      active = false;
+      socket.off("connect", joinRoom);
+      socket.off("game:updated", handleUpdate);
+      socket.off("leaderboard:updated", handleUpdate);
+      socket.off("connect_error", handleConnectError);
+      socket.disconnect();
+    };
+  }, [roomCode, refresh]);
 
   useEffect(() => {
     if (!game?.currentQuestion || game.hasAnswered) return;
