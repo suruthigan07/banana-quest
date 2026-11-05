@@ -1,6 +1,7 @@
 import Game from "../models/Game.js";
 import Question from "../models/Question.js";
 import GameAnswer from "../models/GameAnswer.js";
+import { emitGameUpdate } from "../services/socketService.js";
 import {
   makeRoomCode,
   calculateBasePoints,
@@ -79,6 +80,7 @@ export async function createGame(req, res) {
       }
     }
 
+    emitGameUpdate(game.roomCode);
     return res.status(201).json({
       message: "Game room created.",
       game: await serializeGame(game, req.user._id)
@@ -112,6 +114,7 @@ export async function joinGame(req, res) {
       avatar: req.user.avatar || ""
     });
     await game.save();
+    emitGameUpdate(game.roomCode);
 
     return res.json({
       message: "Joined game successfully.",
@@ -150,6 +153,7 @@ export async function startGame(req, res) {
     game.startedAt = new Date();
     game.currentQuestionStartedAt = new Date();
     await game.save();
+    emitGameUpdate(game.roomCode, { leaderboard: true });
 
     return res.json({ message: "Game started.", game: await serializeGame(game, req.user._id) });
   } catch (error) {
@@ -229,6 +233,7 @@ export async function submitAnswer(req, res) {
     player.currentStreak = nextStreak;
     player.longestStreak = Math.max(player.longestStreak, nextStreak);
     await game.save();
+    emitGameUpdate(game.roomCode, { leaderboard: true });
 
     return res.status(201).json({
       message: "Answer submitted.",
@@ -319,6 +324,7 @@ export async function nextQuestion(req, res) {
     }
 
     await game.save();
+    emitGameUpdate(game.roomCode, { leaderboard: true });
     return res.json({
       message: game.status === "completed" ? "Game completed." : "Next question started.",
       game: await serializeGame(game, req.user._id)

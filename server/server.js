@@ -4,8 +4,12 @@ import mongoose from "mongoose";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import { createServer } from "node:http";
+import { Server as SocketIOServer } from "socket.io";
+import { configureGameSockets } from "./sockets/gameSocket.js";
 import passport from "./config/passport.js";
 import authRoutes from "./routes/authRoutes.js";
+import gameRoutes from "./routes/gameRoutes.js";
 
 const required = ["MONGO_URI", "JWT_SECRET", "CLIENT_URL"];
 const missing = required.filter((key) => !process.env[key]);
@@ -36,6 +40,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/games", gameRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found." });
@@ -47,11 +52,17 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: { origin: process.env.CLIENT_URL, credentials: true },
+  transports: ["websocket", "polling"]
+});
+configureGameSockets(io);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected.");
-    app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+    httpServer.listen(PORT, () => console.log(`Backend and Socket.IO running on port ${PORT}`));
   })
   .catch((error) => {
     console.error("MongoDB connection failed:", error.message);
