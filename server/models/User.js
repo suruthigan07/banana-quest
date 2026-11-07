@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 
+/**
+ * THEME: VIRTUAL IDENTITY
+ * User Model representing the authenticated player's virtual identity.
+ * Tracks multiple identity providers (Local JWT, Google OAuth, Facebook OAuth),
+ * customizable avatar representation, in-game badges, high scores, and persistent game stats.
+ */
 const identitySchema = new mongoose.Schema(
   {
     provider: {
@@ -33,7 +39,14 @@ const userSchema = new mongoose.Schema(
       select: false,
       default: null
     },
-    avatar: { type: String, default: "" },
+    avatar: { type: String, default: "banana-warrior" },
+    title: { type: String, default: "Banana Novice" },
+    bananaCoins: { type: Number, default: 100 },
+    highestStreak: { type: Number, default: 0 },
+    badges: {
+      type: [String],
+      default: ["Banana Rookie", "First Steps"]
+    },
     identities: {
       type: [identitySchema],
       required: true,
@@ -45,6 +58,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["player", "admin"], default: "player" },
     totalPoints: { type: Number, default: 0 },
     gamesPlayed: { type: Number, default: 0 },
+    gamesWon: { type: Number, default: 0 },
     lastLogin: { type: Date, default: null }
   },
   { timestamps: true }

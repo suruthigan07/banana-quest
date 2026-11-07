@@ -1,43 +1,201 @@
 import "dotenv/config";
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 import Question from "../models/Question.js";
+import User from "../models/User.js";
 
-const questions = [
-  { question: "Which language is primarily used to build interactive web pages?", options: ["C", "JavaScript", "SQL", "Bash"], correctAnswerIndex: 1, explanation: "JavaScript adds behaviour and interactivity to web pages.", category: "Programming", difficulty: "Easy" },
-  { question: "What does HTML stand for?", options: ["HyperText Markup Language", "HighText Machine Language", "HyperTool Multi Language", "Home Tool Markup Language"], correctAnswerIndex: 0, explanation: "HTML means HyperText Markup Language.", category: "Programming", difficulty: "Easy" },
-  { question: "Which data structure follows FIFO?", options: ["Stack", "Queue", "Tree", "Graph"], correctAnswerIndex: 1, explanation: "A queue follows First In, First Out.", category: "Computer Science", difficulty: "Easy" },
-  { question: "Which HTTP method is commonly used to create a resource?", options: ["GET", "POST", "DELETE", "HEAD"], correctAnswerIndex: 1, explanation: "POST is commonly used to submit data and create a resource.", category: "Web Development", difficulty: "Easy" },
-  { question: "Which database is document-oriented?", options: ["MongoDB", "MySQL", "SQLite", "PostgreSQL"], correctAnswerIndex: 0, explanation: "MongoDB stores data as BSON documents.", category: "Databases", difficulty: "Easy" },
-  { question: "What does CSS control?", options: ["Database queries", "Page presentation", "Server routing", "Network addressing"], correctAnswerIndex: 1, explanation: "CSS controls the visual presentation of web documents.", category: "Web Development", difficulty: "Easy" },
-  { question: "Which Git command creates a new branch?", options: ["git push", "git branch", "git clone", "git status"], correctAnswerIndex: 1, explanation: "git branch can create and list branches.", category: "Software Engineering", difficulty: "Easy" },
-  { question: "What is the main purpose of an API?", options: ["Compress images", "Enable software communication", "Format a hard drive", "Compile CSS"], correctAnswerIndex: 1, explanation: "An API defines how software components communicate.", category: "Software Engineering", difficulty: "Easy" },
-  { question: "Which protocol secures HTTP communication?", options: ["FTP", "SMTP", "TLS", "ARP"], correctAnswerIndex: 2, explanation: "HTTPS uses TLS to protect HTTP communication.", category: "Networking", difficulty: "Medium" },
-  { question: "Which SQL clause filters rows?", options: ["ORDER BY", "WHERE", "GROUP BY", "JOIN"], correctAnswerIndex: 1, explanation: "WHERE filters rows based on a condition.", category: "Databases", difficulty: "Easy" },
-  { question: "In React, what is a component?", options: ["A reusable UI building block", "A database table", "A network protocol", "A browser extension"], correctAnswerIndex: 0, explanation: "React components are reusable pieces of user interface.", category: "Web Development", difficulty: "Medium" },
-  { question: "What does JSON stand for?", options: ["Java Source Object Network", "JavaScript Object Notation", "Joined System Output Name", "Java Standard Open Notation"], correctAnswerIndex: 1, explanation: "JSON is a lightweight data-interchange format.", category: "Web Development", difficulty: "Easy" },
-  { question: "Which algorithmic complexity is associated with binary search on a sorted array?", options: ["O(n)", "O(log n)", "O(n²)", "O(1)"], correctAnswerIndex: 1, explanation: "Binary search halves the search interval each step.", category: "Computer Science", difficulty: "Medium" },
-  { question: "Which device forwards packets between different networks?", options: ["Switch", "Router", "Repeater", "Hub"], correctAnswerIndex: 1, explanation: "Routers forward packets between networks.", category: "Networking", difficulty: "Easy" },
-  { question: "What does CRUD represent?", options: ["Create, Read, Update, Delete", "Copy, Run, Undo, Deploy", "Connect, Route, Use, Debug", "Create, Remove, Upload, Download"], correctAnswerIndex: 0, explanation: "CRUD describes the four basic data operations.", category: "Databases", difficulty: "Easy" },
-  { question: "Which status code means a successful HTTP request?", options: ["301", "404", "200", "500"], correctAnswerIndex: 2, explanation: "HTTP 200 indicates success.", category: "Web Development", difficulty: "Easy" },
-  { question: "Which principle hides internal implementation details?", options: ["Encapsulation", "Iteration", "Compilation", "Replication"], correctAnswerIndex: 0, explanation: "Encapsulation bundles data and methods while controlling access.", category: "Computer Science", difficulty: "Medium" },
-  { question: "What is the purpose of a primary key?", options: ["Style a table", "Uniquely identify a row", "Encrypt a database", "Sort every column"], correctAnswerIndex: 1, explanation: "A primary key uniquely identifies each record in a table.", category: "Databases", difficulty: "Easy" },
-  { question: "Which tool is commonly used for JavaScript package management?", options: ["npm", "Photoshop", "Wireshark", "Figma"], correctAnswerIndex: 0, explanation: "npm manages JavaScript packages and project dependencies.", category: "Software Engineering", difficulty: "Easy" },
-  { question: "What does event-driven programming respond to?", options: ["Only database backups", "Events and user/system actions", "Only scheduled compiles", "Only file extensions"], correctAnswerIndex: 1, explanation: "Event-driven programs execute handlers when events occur.", category: "Software Engineering", difficulty: "Medium" }
+const bananaAndCsQuestions = [
+  // Marc Conrad Banana API Puzzles
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 5,
+    explanation: "The solution to this Banana equation is 5.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png",
+    isActive: true
+  },
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 1,
+    explanation: "The solution to this Banana equation is 1.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2e4ce2b69c56f551f8a0a07145n51.png",
+    isActive: true
+  },
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 8,
+    explanation: "The solution to this Banana equation is 8.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2fcf13d2cfa31c578988691dc9n58.png",
+    isActive: true
+  },
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 3,
+    explanation: "The solution to this Banana equation is 3.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2806fe068545e85c292150fe1fn15.png",
+    isActive: true
+  },
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 7,
+    explanation: "The solution to this Banana equation is 7.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2a71d798ba4f5f58dfcb68c6e0n52.png",
+    isActive: true
+  },
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 4,
+    explanation: "The solution to this Banana equation is 4.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t203fe926be57dfceb8a3e878ben24.png",
+    isActive: true
+  },
+  {
+    question: "Solve the Banana Math Equation! Find the missing single digit (0-9):",
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    correctAnswerIndex: 9,
+    explanation: "The solution to this Banana equation is 9.",
+    category: "Banana API",
+    difficulty: "Arcade",
+    questionType: "banana",
+    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2307efcbfe1941d8e1c6e4e047n89.png",
+    isActive: true
+  },
+  // Enterprise Software & CS Questions
+  {
+    question: "Which pattern best describes how WebSockets and GUI event listeners work in software?",
+    options: ["Observer / Event-Driven Pattern", "Factory Method", "Singleton", "Interpreter"],
+    correctAnswerIndex: 0,
+    explanation: "The Observer and Event-Driven pattern allows decoupled subscribers to react to asynchronous emitted events.",
+    category: "Software Engineering",
+    difficulty: "Medium",
+    questionType: "trivia",
+    imageUrl: "",
+    isActive: true
+  },
+  {
+    question: "What is the primary benefit of Software Interoperability in enterprise architectures?",
+    options: ["Compiling C++ to machine code", "Enabling heterogeneous systems and APIs to exchange and consume data seamlessly", "Encrypting database hard drives", "Compressing CSS bundle sizes"],
+    correctAnswerIndex: 1,
+    explanation: "Interoperability allows diverse systems (like our Node server calling Marc Conrad's REST API) to communicate via standardized contracts.",
+    category: "Software Engineering",
+    difficulty: "Medium",
+    questionType: "trivia",
+    imageUrl: "",
+    isActive: true
+  },
+  {
+    question: "In Virtual Identity architecture, why are HTTP-only JWT cookies safer than localStorage for storing sessions?",
+    options: ["They load faster into GPU memory", "They prevent client-side JavaScript from reading the token, mitigating XSS attacks", "They encrypt the HTML stylesheet", "They bypass CORS policies completely"],
+    correctAnswerIndex: 1,
+    explanation: "HTTP-only cookies cannot be accessed via document.cookie by malicious XSS scripts, protecting player authentication.",
+    category: "Cybersecurity",
+    difficulty: "Medium",
+    questionType: "trivia",
+    imageUrl: "",
+    isActive: true
+  }
 ];
 
-try {
-  if (!process.env.MONGO_URI) throw new Error("MONGO_URI is missing.");
-  await mongoose.connect(process.env.MONGO_URI);
-  const existingCount = await Question.countDocuments();
-  if (existingCount > 0) {
-    console.log(`Questions collection already contains ${existingCount} records. No seed data inserted.`);
-  } else {
-    await Question.insertMany(questions);
-    console.log(`Inserted ${questions.length} sample questions.`);
+async function seed() {
+  try {
+    if (!process.env.MONGO_URI) throw new Error("MONGO_URI is missing.");
+    await mongoose.connect(process.env.MONGO_URI);
+    
+    // Seed Questions if needed
+    const count = await Question.countDocuments();
+    if (count === 0) {
+      await Question.insertMany(bananaAndCsQuestions);
+      console.log(`Seeded ${bananaAndCsQuestions.length} initial Banana Quest questions!`);
+    } else {
+      console.log(`Database contains ${count} questions.`);
+    }
+
+    // Seed Demo Users for easy testing/grading
+    const demoPasswordHash = await bcrypt.hash("password123", 10);
+    
+    const demoUsers = [
+      {
+        username: "BananaChamp",
+        email: "player@banana.quest",
+        passwordHash: demoPasswordHash,
+        avatar: "king-banana",
+        title: "Grand Banana King 👑",
+        bananaCoins: 850,
+        highestStreak: 7,
+        totalPoints: 3420,
+        gamesPlayed: 14,
+        gamesWon: 11,
+        badges: ["Banana Rookie", "First Steps", "Banana Champion", "Streak God", "Jungle Master"],
+        identities: [{ provider: "local", providerId: "player@banana.quest" }]
+      },
+      {
+        username: "TutorReviewer",
+        email: "tutor@banana.quest",
+        passwordHash: demoPasswordHash,
+        avatar: "detective-banana",
+        title: "Inspector Peel 🕵️",
+        bananaCoins: 500,
+        highestStreak: 5,
+        totalPoints: 1850,
+        gamesPlayed: 8,
+        gamesWon: 6,
+        badges: ["Banana Rookie", "First Steps", "Banana Veteran"],
+        identities: [{ provider: "local", providerId: "tutor@banana.quest" }]
+      },
+      {
+        username: "CyberMonk",
+        email: "cyber@banana.quest",
+        passwordHash: demoPasswordHash,
+        avatar: "cyber-banana",
+        title: "Cyber Ape Overlord 🚀",
+        bananaCoins: 420,
+        highestStreak: 4,
+        totalPoints: 1490,
+        gamesPlayed: 7,
+        gamesWon: 4,
+        badges: ["Banana Rookie", "First Steps"],
+        identities: [{ provider: "local", providerId: "cyber@banana.quest" }]
+      }
+    ];
+
+    for (const u of demoUsers) {
+      const exists = await User.findOne({ email: u.email });
+      if (!exists) {
+        await User.create(u);
+        console.log(`Created demo user: ${u.email} / password123`);
+      }
+    }
+
+    console.log("Seeding complete!");
+  } catch (error) {
+    console.error("Seeding failed:", error.message);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
-} catch (error) {
-  console.error("Question seeding failed:", error);
-  process.exitCode = 1;
-} finally {
-  await mongoose.disconnect();
 }
+
+seed();
