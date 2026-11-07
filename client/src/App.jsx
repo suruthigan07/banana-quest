@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import CreateGame from "./pages/CreateGame";
 import JoinGame from "./pages/JoinGame";
 import GameRoom from "./pages/GameRoom";
+import Leaderboard from "./pages/Leaderboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { getCurrentUser, logoutUser } from "./services/authService";
 import "./styles.css";
@@ -23,11 +24,21 @@ function AppContent() {
   }, []);
 
   async function handleLogout() {
-    try { await logoutUser(); }
-    finally { setUser(null); }
+    try {
+      await logoutUser();
+    } finally {
+      setUser(null);
+    }
   }
 
-  if (loading) return <div className="page-center">Loading Quiz Battle...</div>;
+  if (loading) {
+    return (
+      <div className="page-center">
+        <div className="loading-banana-spinner">🍌</div>
+        <p>Connecting to Banana Quest...</p>
+      </div>
+    );
+  }
 
   return (
     <Routes>
@@ -39,6 +50,7 @@ function AppContent() {
         <Route path="/games/create" element={<CreateGame />} />
         <Route path="/games/join" element={<JoinGame />} />
         <Route path="/game/:roomCode" element={<GameRoom user={user} />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -46,5 +58,9 @@ function AppContent() {
 }
 
 export default function App() {
-  return <BrowserRouter><AppContent /></BrowserRouter>;
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
 }

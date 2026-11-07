@@ -14,6 +14,12 @@ function readCookie(cookieHeader, name) {
   return null;
 }
 
+/**
+ * THEME: EVENT-DRIVEN PROGRAMMING
+ * Real-time duplex WebSocket architecture using Socket.IO.
+ * Dispatches and listens for asynchronous game room lifecycle events,
+ * live player reactions, dynamic answer signals, and leaderboard mutations.
+ */
 export function configureGameSockets(io) {
   setSocketServer(io);
 
@@ -22,7 +28,7 @@ export function configureGameSockets(io) {
       const token = readCookie(socket.handshake.headers.cookie, "quiz_token");
       if (!token) return next(new Error("Authentication required. Please log in."));
       const payload = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(payload.sub).select("_id username avatar");
+      const user = await User.findById(payload.sub).select("_id username avatar title");
       if (!user) return next(new Error("Account not found."));
       socket.user = user;
       next();
@@ -32,6 +38,7 @@ export function configureGameSockets(io) {
   });
 
   io.on("connection", (socket) => {
+    // Event: Player joins a room channel
     socket.on("room:join", async (rawRoomCode, callback) => {
       try {
         const roomCode = String(rawRoomCode || "").trim().toUpperCase();
@@ -44,7 +51,7 @@ export function configureGameSockets(io) {
         );
         if (!isMember) return callback?.({ ok: false, message: "You are not a player in this room." });
 
-        // A socket can subscribe to only one game room at a time.
+        // Unsubscribe from any previous rooms
         for (const joinedRoom of socket.rooms) {
           if (joinedRoom.startsWith("game:") && joinedRoom !== `game:${roomCode}`) {
             socket.leave(joinedRoom);
@@ -56,6 +63,29 @@ export function configureGameSockets(io) {
         console.error("Socket room join error:", error);
         callback?.({ ok: false, message: "Could not join the live room." });
       }
+    });
+
+    // Event: Live player reaction (e.g. 🍌, 🔥, 🚀, 👑, 😱)
+    socket.on("reaction:send", ({ roomCode, emoji }) => {
+      if (!roomCode || !emoji) return;
+      const cleanCode = String(roomCode).trim().toUpperCase();
+      io.to(`game:${cleanCode}`).emit("reaction:received", {
+        emoji,
+        userId: socket.user._id,
+        username: socket.user.username,
+        avatar: socket.user.avatar || "banana-warrior",
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+      });
+    });
+
+    // Event: Player submitted an answer signal
+    socket.on("answer:submitted", ({ roomCode }) => {
+      if (!roomCode) return;
+      const cleanCode = String(roomCode).trim().toUpperCase();
+      socket.to(`game:${cleanCode}`).emit("player:answered", {
+        userId: socket.user._id,
+        username: socket.user.username
+      });
     });
   });
 }

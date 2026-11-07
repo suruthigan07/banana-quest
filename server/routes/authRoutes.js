@@ -2,7 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import passport from "../config/passport.js";
 import {
-  register, login, logout, me, socialLogin
+  register, login, logout, me, socialLogin, updateProfile, getGlobalLeaderboard
 } from "../controllers/authController.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
 
@@ -10,7 +10,7 @@ const router = Router();
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: 30,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { message: "Too many authentication attempts. Please try again later." }
@@ -20,6 +20,8 @@ router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.post("/logout", requireAuth, logout);
 router.get("/me", requireAuth, me);
+router.put("/profile", requireAuth, updateProfile);
+router.get("/leaderboard", requireAuth, getGlobalLeaderboard);
 
 router.get(
   "/google",

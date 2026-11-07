@@ -3,13 +3,18 @@ import Question from "../models/Question.js";
 import GameAnswer from "../models/GameAnswer.js";
 import { emitGameUpdate } from "../services/socketService.js";
 import {
+  fetchBananaPuzzlesBatch,
+  formatBananaAsQuestion
+} from "../services/bananaApiService.js";
+import {
   makeRoomCode,
   calculateBasePoints,
   streakBonus,
-  serializeGame
+  serializeGame,
+  finalizeGameStats
 } from "../services/gameService.js";
 
-const allowedQuestionCounts = [5, 10, 15];
+const allowedQuestionCounts = [1, 2, 3, 5, 10, 15];
 const allowedTimeLimits = [10, 15, 20, 30];
 
 async function findGame(roomCode) {
@@ -24,36 +29,59 @@ function isHost(game, userId) {
   return game.hostId.toString() === userId.toString();
 }
 
+/**
+ * THEME: INTEROPERABILITY & DISTRIBUTED ARCHITECTURE
+ * Creates a new Game Room. If "Banana API" is selected (default), it invokes the external
+ * Marc Conrad Banana API service to fetch fresh equation puzzles.
+ */
 export async function createGame(req, res) {
   try {
     const questionCount = Number(req.body.questionCount || 5);
     const maxPlayers = Number(req.body.maxPlayers || 8);
-    const timeLimit = Number(req.body.timeLimitSeconds || 10);
-    const category = String(req.body.category || "Mixed").trim();
+    const timeLimit = Number(req.body.timeLimitSeconds || 15);
+    const category = String(req.body.category || "Banana API").trim();
+    const mode = String(req.body.mode || (category === "Banana API" ? "banana" : "trivia")).trim();
+    const isSolo = maxPlayers === 1 || Boolean(req.body.isSolo);
 
     if (!allowedQuestionCounts.includes(questionCount)) {
-      return res.status(400).json({ message: "Choose 5, 10 or 15 questions." });
+      return res.status(400).json({ message: "Choose 1, 2, 3, 5, 10, or 15 questions." });
     }
-    if (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 20) {
-      return res.status(400).json({ message: "Maximum players must be between 2 and 20." });
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 1 || maxPlayers > 20) {
+      return res.status(400).json({ message: "Players must be between 1 and 20." });
     }
     if (!allowedTimeLimits.includes(timeLimit)) {
-      return res.status(400).json({ message: "Choose a 10, 15, 20 or 30 second timer." });
+      return res.status(400).json({ message: "Choose a 10, 15, 20, or 30 second timer." });
     }
 
-    const filter = { isActive: true };
-    if (category !== "Mixed") filter.category = category;
+    let questionIds = [];
 
-    const questions = await Question.aggregate([
-      { $match: filter },
-      { $sample: { size: questionCount } },
-      { $project: { _id: 1 } }
-    ]);
+    if (category === "Banana API" || mode === "banana") {
+      // Interoperability in action: fetch live puzzles from external Banana API
+      const puzzles = await fetchBananaPuzzlesBatch(questionCount);
+      const questionDocs = await Question.insertMany(
+        puzzles.map((p, idx) => formatBananaAsQuestion(p, idx + 1))
+      );
+      questionIds = questionDocs.map((doc) => doc._id);
+    } else {
+      const filter = { isActive: true };
+      if (category !== "Mixed") filter.category = category;
 
-    if (questions.length < questionCount) {
-      return res.status(400).json({
-        message: `Not enough active questions in ${category}. Add more questions or choose Mixed.`
-      });
+      let questions = await Question.aggregate([
+        { $match: filter },
+        { $sample: { size: questionCount } },
+        { $project: { _id: 1 } }
+      ]);
+
+      if (questions.length < questionCount) {
+        // Fallback to Banana API questions if database has insufficient trivia questions
+        const puzzles = await fetchBananaPuzzlesBatch(questionCount);
+        const questionDocs = await Question.insertMany(
+          puzzles.map((p, idx) => formatBananaAsQuestion(p, idx + 1))
+        );
+        questionIds = questionDocs.map((doc) => doc._id);
+      } else {
+        questionIds = questions.map((item) => item._id);
+      }
     }
 
     let roomCode;
@@ -67,10 +95,13 @@ export async function createGame(req, res) {
           players: [{
             userId: req.user._id,
             username: req.user.username,
-            avatar: req.user.avatar || ""
+            avatar: req.user.avatar || "banana-warrior",
+            title: req.user.title || "Banana Novice"
           }],
-          questionIds: questions.map((item) => item._id),
+          questionIds,
           category,
+          mode,
+          isSolo,
           maxPlayers,
           questionTimeLimitSeconds: timeLimit
         });
@@ -82,7 +113,7 @@ export async function createGame(req, res) {
 
     emitGameUpdate(game.roomCode);
     return res.status(201).json({
-      message: "Game room created.",
+      message: isSolo ? "Solo Banana Quest started." : "Game room created.",
       game: await serializeGame(game, req.user._id)
     });
   } catch (error) {
@@ -111,7 +142,8 @@ export async function joinGame(req, res) {
     game.players.push({
       userId: req.user._id,
       username: req.user.username,
-      avatar: req.user.avatar || ""
+      avatar: req.user.avatar || "banana-warrior",
+      title: req.user.title || "Banana Novice"
     });
     await game.save();
     emitGameUpdate(game.roomCode);
@@ -146,7 +178,9 @@ export async function startGame(req, res) {
     if (!game) return res.status(404).json({ message: "Room not found." });
     if (!isHost(game, req.user._id)) return res.status(403).json({ message: "Only the host can start the game." });
     if (game.status !== "waiting") return res.status(409).json({ message: "This game is not waiting to start." });
-    if (game.players.length < 2) return res.status(400).json({ message: "At least two players are required." });
+
+    // Allow 1 player in Solo mode or for testing; require >= 1 player
+    if (game.players.length < 1) return res.status(400).json({ message: "At least one player is required." });
 
     game.status = "active";
     game.currentQuestionIndex = 0;
@@ -197,7 +231,7 @@ export async function submitAnswer(req, res) {
       Date.now() - new Date(game.currentQuestionStartedAt).getTime()
     );
     const timeLimitMs = game.questionTimeLimitSeconds * 1000;
-    const withinTime = responseTimeMs < timeLimitMs;
+    const withinTime = responseTimeMs <= timeLimitMs + 1000; // 1s grace margin for network lag
     const isCorrect = withinTime && selectedAnswerIndex === question.correctAnswerIndex;
 
     const player = game.players.find((item) => item.userId.toString() === req.user._id.toString());
@@ -232,6 +266,8 @@ export async function submitAnswer(req, res) {
     player.score += totalPoints;
     player.currentStreak = nextStreak;
     player.longestStreak = Math.max(player.longestStreak, nextStreak);
+    if (isCorrect) player.correctAnswers = (player.correctAnswers || 0) + 1;
+
     await game.save();
     emitGameUpdate(game.roomCode, { leaderboard: true });
 
@@ -281,8 +317,7 @@ export async function nextQuestion(req, res) {
       });
     }
 
-    // A timeout counts as a missed answer and resets that player's streak.
-    // Record it once so a later correct answer cannot continue an old streak.
+    // Unanswered players get 0 and streak resets
     if (timeExpired) {
       const answeredIds = new Set(
         (await GameAnswer.find({ gameId: game._id, questionId: currentQuestionId }).select("userId"))
@@ -318,6 +353,7 @@ export async function nextQuestion(req, res) {
       game.status = "completed";
       game.finishedAt = new Date();
       game.currentQuestionStartedAt = null;
+      await finalizeGameStats(game);
     } else {
       game.currentQuestionIndex = nextIndex;
       game.currentQuestionStartedAt = new Date();
@@ -342,7 +378,7 @@ export async function getGameAnswers(req, res) {
     if (!isPlayer(game, req.user._id)) return res.status(403).json({ message: "You are not a player in this room." });
 
     const answers = await GameAnswer.find({ gameId: game._id, userId: req.user._id })
-      .populate("questionId", "question options category")
+      .populate("questionId", "question options category imageUrl questionType explanation correctAnswerIndex")
       .sort({ createdAt: 1 })
       .lean();
 
@@ -350,7 +386,11 @@ export async function getGameAnswers(req, res) {
       answers: answers.map((item) => ({
         question: item.questionId?.question || "Question",
         category: item.questionId?.category || "",
+        imageUrl: item.questionId?.imageUrl || "",
+        questionType: item.questionId?.questionType || "banana",
         selectedAnswerIndex: item.selectedAnswerIndex,
+        correctAnswerIndex: item.questionId?.correctAnswerIndex,
+        explanation: item.questionId?.explanation || "",
         isCorrect: item.isCorrect,
         responseTimeMs: item.responseTimeMs,
         basePoints: item.basePoints,
