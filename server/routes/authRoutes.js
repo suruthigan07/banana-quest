@@ -1,6 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import passport from "../config/passport.js";
+import passport, { facebookConfigured, googleConfigured } from "../config/passport.js";
 import {
   register, login, logout, me, socialLogin, updateProfile, getGlobalLeaderboard
 } from "../controllers/authController.js";
@@ -26,7 +26,7 @@ router.get("/leaderboard", optionalAuth, getGlobalLeaderboard);
 router.get(
   "/google",
   (req, res, next) => {
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    if (!googleConfigured) {
       return res.status(503).json({ message: "Google login is not configured yet." });
     }
     next();
@@ -46,7 +46,7 @@ router.get(
 router.get(
   "/facebook",
   (req, res, next) => {
-    if (!process.env.FACEBOOK_APP_ID || !process.env.FACEBOOK_APP_SECRET) {
+    if (!facebookConfigured) {
       return res.status(503).json({ message: "Facebook login is not configured yet." });
     }
     next();

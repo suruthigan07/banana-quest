@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "./config/loadEnv.js";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -74,12 +74,12 @@ const io = new SocketIOServer(httpServer, {
 });
 configureGameSockets(io);
 
+const server = httpServer.listen(PORT, () => console.log(`Backend and Socket.IO running on port ${PORT}`));
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected.");
-    httpServer.listen(PORT, () => console.log(`Backend and Socket.IO running on port ${PORT}`));
   })
   .catch((error) => {
-    console.error("MongoDB connection failed:", error.message);
-    process.exit(1);
+    console.warn("MongoDB connection notice (server running with fallback data):", error.message);
   });
