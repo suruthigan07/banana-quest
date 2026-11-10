@@ -11,7 +11,8 @@ export const loginUser = async (data) => (await api.post("/auth/login", data)).d
 export const getCurrentUser = async () => (await api.get("/auth/me")).data;
 export const logoutUser = async () => (await api.post("/auth/logout")).data;
 export const updateUserProfile = async (data) => (await api.put("/auth/profile", data)).data;
-export const getLeaderboard = async () => (await api.get("/auth/leaderboard")).data;
+export const getLeaderboard = async (timeframe = "allTime") =>
+  (await api.get(`/auth/leaderboard?timeframe=${timeframe}`)).data;
 
 export const socialLoginUrl = (provider) => {
   const base = import.meta.env.VITE_API_URL || "http://localhost:5000/api";

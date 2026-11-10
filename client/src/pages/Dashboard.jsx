@@ -86,6 +86,7 @@ export default function Dashboard({ user: initialUser, onLogout }) {
   const [loadingPuzzle, setLoadingPuzzle] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [levelCompletedMessage, setLevelCompletedMessage] = useState(null);
+  const [achievementCategory, setAchievementCategory] = useState("all");
 
   // Guard ref to guarantee strictly ONLY 1 life deduction per time out
   const timeoutHandledRef = useRef(false);
@@ -376,6 +377,119 @@ export default function Dashboard({ user: initialUser, onLogout }) {
 
   const currentConfig = LEVEL_CONFIGS[selectedLevelKey];
 
+  const achievements = [
+    {
+      id: "first_peel",
+      icon: "🍌",
+      title: "First Peel",
+      category: "beginner",
+      description: "Solve your very first Banana API math equation.",
+      requirement: 1,
+      current: (score > 0 || streak > 0) ? 1 : 0,
+      reward: 25,
+      unlocked: (score > 0 || streak > 0)
+    },
+    {
+      id: "banana_rookie",
+      icon: "👶",
+      title: "Banana Rookie",
+      category: "beginner",
+      description: "Play and complete an Easy Level challenge.",
+      requirement: 1,
+      current: playerLevel >= 2 ? 1 : 0,
+      reward: 30,
+      unlocked: playerLevel >= 2
+    },
+    {
+      id: "puzzle_adventurer",
+      icon: "🧭",
+      title: "Puzzle Adventurer",
+      category: "beginner",
+      description: "Advance to Level 2 or higher in the Banana Jungle.",
+      requirement: 2,
+      current: Math.min(2, playerLevel),
+      reward: 50,
+      unlocked: playerLevel >= 2
+    },
+    {
+      id: "potassium_streak",
+      icon: "🔥",
+      title: "Potassium Streak",
+      category: "streak",
+      description: "Maintain a streak of 3 consecutive correct answers.",
+      requirement: 3,
+      current: Math.min(3, Math.max(streak, user?.highestStreak || 0)),
+      reward: 60,
+      unlocked: (streak >= 3 || (user?.highestStreak || 0) >= 3)
+    },
+    {
+      id: "five_streak",
+      icon: "⚡",
+      title: "Unstoppable Combo",
+      category: "streak",
+      description: "Achieve a fiery 5-in-a-row correct puzzle streak.",
+      requirement: 5,
+      current: Math.min(5, Math.max(streak, user?.highestStreak || 0)),
+      reward: 100,
+      unlocked: (streak >= 5 || (user?.highestStreak || 0) >= 5)
+    },
+    {
+      id: "backpack_explorer",
+      icon: "🎒",
+      title: "Backpack Explorer",
+      category: "master",
+      description: "Complete a Medium difficulty level challenge.",
+      requirement: 1,
+      current: playerLevel >= 3 ? 1 : 0,
+      reward: 80,
+      unlocked: playerLevel >= 3
+    },
+    {
+      id: "hardcore_climber",
+      icon: "🧗",
+      title: "Hardcore Climber",
+      category: "master",
+      description: "Conquer a Hard difficulty challenge (3 puzzles • 45 pts).",
+      requirement: 1,
+      current: playerLevel >= 4 ? 1 : 0,
+      reward: 150,
+      unlocked: playerLevel >= 4
+    },
+    {
+      id: "century_club",
+      icon: "💯",
+      title: "Century Club",
+      category: "master",
+      description: "Accumulate 100 or more Banana Points in total.",
+      requirement: 100,
+      current: Math.min(100, score),
+      reward: 120,
+      unlocked: score >= 100
+    },
+    {
+      id: "math_mastermind",
+      icon: "🧠",
+      title: "Math Mastermind",
+      category: "master",
+      description: "Reach a grand total score of 250 Banana Points.",
+      requirement: 250,
+      current: Math.min(250, score),
+      reward: 200,
+      unlocked: score >= 250
+    },
+    {
+      id: "clutch_survivor",
+      icon: "🛡️",
+      title: "Clutch Survivor",
+      category: "streak",
+      description: "Answer correctly when down to your final life ❤️.",
+      requirement: 1,
+      current: (lives === 1 && score > 0) ? 1 : 0,
+      reward: 100,
+      unlocked: (lives === 1 && score > 0)
+    }
+  ];
+
   return (
     <main className="dashboard-page banana-theme-page">
       <BananaBackground />
@@ -614,7 +728,7 @@ export default function Dashboard({ user: initialUser, onLogout }) {
 
             {/* Footer for Page 1 */}
             <footer className="choose-level-footer gd-footer-cyan">
-              3. Choose Level Form UI
+              Choose Level
             </footer>
           </>
         )}
@@ -871,30 +985,159 @@ export default function Dashboard({ user: initialUser, onLogout }) {
 
             {/* Footer for Page 2 */}
             <footer className="choose-level-footer gd-footer-cyan">
-              4. Game Dashboard
+              Game Dashboard
             </footer>
           </>
         )}
 
         {/* =========================================================================
-            ACHIEVEMENTS TAB
+            ACHIEVEMENTS TAB (Rich Interactive Achievements System)
             ========================================================================= */}
         {currentPage === "achievements" && (
           <>
-            <div className="banana-generic-container">
-              <h2>🏅 Player Badges & Milestones</h2>
-              <div className="badges-list">
-                {(user?.badges || ["Banana Rookie", "First Steps", "Puzzle Adventurer"]).map(
-                  (badge, idx) => (
-                    <span key={idx} className="game-badge-pill">
-                      ⭐ {badge}
-                    </span>
-                  )
-                )}
+            <div className="banana-achievements-container">
+              {/* Header Hero */}
+              <div className="achievements-hero-card">
+                <div className="achievements-mascot-wrap">
+                  <span className="achievements-mascot-emoji">🏅</span>
+                </div>
+                <div className="achievements-hero-info">
+                  <span className="achievements-eyebrow">MILESTONES & REWARDS</span>
+                  <h1>Jungle Achievements</h1>
+                  <p>Unlock badges and earn Banana Coins by solving equations and mastering levels.</p>
+                </div>
+              </div>
+
+              {/* Progress Summary Strip */}
+              <div className="achievements-summary-strip">
+                <div className="summary-stat-box">
+                  <span className="summary-label">Unlocked</span>
+                  <strong className="summary-value">
+                    {achievements.filter((a) => a.unlocked).length} / {achievements.length}
+                  </strong>
+                </div>
+                <div className="summary-stat-box">
+                  <span className="summary-label">Coins Earned</span>
+                  <strong className="summary-value coin-gold">
+                    🪙 {achievements.filter((a) => a.unlocked).reduce((s, a) => s + a.reward, 0)}
+                  </strong>
+                </div>
+                <div className="summary-progress-box">
+                  <div className="progress-label-row">
+                    <span>Overall Completion</span>
+                    <strong>
+                      {Math.round(
+                        (achievements.filter((a) => a.unlocked).length / achievements.length) * 100
+                      )}%
+                    </strong>
+                  </div>
+                  <div className="overall-progress-bar">
+                    <div
+                      className="overall-progress-fill"
+                      style={{
+                        width: `${Math.round(
+                          (achievements.filter((a) => a.unlocked).length / achievements.length) * 100
+                        )}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="achievements-filter-tabs">
+                <button
+                  type="button"
+                  className={`achieve-filter-btn ${achievementCategory === "all" ? "filter-active" : ""}`}
+                  onClick={() => {
+                    playClickSound();
+                    setAchievementCategory("all");
+                  }}
+                >
+                  🌟 All ({achievements.length})
+                </button>
+                <button
+                  type="button"
+                  className={`achieve-filter-btn ${achievementCategory === "beginner" ? "filter-active" : ""}`}
+                  onClick={() => {
+                    playClickSound();
+                    setAchievementCategory("beginner");
+                  }}
+                >
+                  👶 Beginner ({achievements.filter((a) => a.category === "beginner").length})
+                </button>
+                <button
+                  type="button"
+                  className={`achieve-filter-btn ${achievementCategory === "streak" ? "filter-active" : ""}`}
+                  onClick={() => {
+                    playClickSound();
+                    setAchievementCategory("streak");
+                  }}
+                >
+                  🔥 Streaks ({achievements.filter((a) => a.category === "streak").length})
+                </button>
+                <button
+                  type="button"
+                  className={`achieve-filter-btn ${achievementCategory === "master" ? "filter-active" : ""}`}
+                  onClick={() => {
+                    playClickSound();
+                    setAchievementCategory("master");
+                  }}
+                >
+                  👑 Master ({achievements.filter((a) => a.category === "master").length})
+                </button>
+              </div>
+
+              {/* Achievements Grid */}
+              <div className="achievements-cards-grid">
+                {achievements
+                  .filter((a) => achievementCategory === "all" || a.category === achievementCategory)
+                  .map((item) => {
+                    const percent = Math.min(100, Math.round((item.current / item.requirement) * 100));
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`achievement-card-box ${item.unlocked ? "unlocked-card" : "locked-card"}`}
+                      >
+                        <div className="achievement-icon-wrapper">
+                          <span className="achievement-badge-icon">{item.icon}</span>
+                          {item.unlocked && <span className="achievement-check-badge">✔</span>}
+                        </div>
+
+                        <div className="achievement-content-col">
+                          <div className="achievement-title-row">
+                            <h3 className="achievement-card-title">{item.title}</h3>
+                            <span className="achievement-reward-tag">+🪙 {item.reward}</span>
+                          </div>
+
+                          <p className="achievement-desc-text">{item.description}</p>
+
+                          {/* Progress Meter */}
+                          <div className="achievement-meter-container">
+                            <div className="achievement-meter-bar">
+                              <div
+                                className={`achievement-meter-fill ${item.unlocked ? "fill-complete" : ""}`}
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                            <span className="achievement-meter-numbers">
+                              {item.unlocked ? (
+                                <strong className="unlocked-text">UNLOCKED</strong>
+                              ) : (
+                                `${item.current} / ${item.requirement}`
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
+
             <footer className="choose-level-footer gd-footer-cyan">
-              Banana Quest
+              Banana Quest - Achievements & Milestones
             </footer>
           </>
         )}
