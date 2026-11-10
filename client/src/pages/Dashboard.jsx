@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import BananaBackground from "../components/BananaBackground";
-import AvatarSelector, { AVATAR_OPTIONS } from "../components/AvatarSelector";
+import { AVATAR_OPTIONS } from "../components/AvatarSelector";
 import {
   MonkeyBannerIllustration,
   EasyMonkeyIllustration,
@@ -55,7 +55,7 @@ const LEVEL_CONFIGS = {
 };
 
 export default function Dashboard({ user: initialUser, onLogout }) {
-  const [user, setUser] = useState(initialUser);
+  const user = initialUser;
   // 2-page flow: "levels" (Page 1: Choose Level Form UI) -> "game" (Page 2: Game Dashboard UI)
   const [currentPage, setCurrentPage] = useState("levels");
   const [selectedLevelKey, setSelectedLevelKey] = useState("easy");
@@ -374,6 +374,16 @@ export default function Dashboard({ user: initialUser, onLogout }) {
 
   const currentAvatarInfo =
     AVATAR_OPTIONS.find((a) => a.id === user?.avatar) || AVATAR_OPTIONS[0];
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })
+    : "Recently joined";
+  const loginMethods = user?.identities?.length
+    ? user.identities.map((identity) => identity[0].toUpperCase() + identity.slice(1)).join(", ")
+    : "Not available";
 
   const currentConfig = LEVEL_CONFIGS[selectedLevelKey];
 
@@ -506,7 +516,9 @@ export default function Dashboard({ user: initialUser, onLogout }) {
               <span className="mac-dot dot-green" title="Expand" />
             </div>
             <div className="banana-window-title">
-              <span className="banana-brand-text">BANANA QUEST</span>
+              <Link to="/" className="banana-brand-text" aria-label="Banana Quest home">
+                BANANA QUEST
+              </Link>
             </div>
           </div>
 
@@ -1143,12 +1155,77 @@ export default function Dashboard({ user: initialUser, onLogout }) {
         )}
 
         {/* =========================================================================
-            PROFILE & AVATAR CUSTOMIZER TAB
+            PLAYER PROFILE TAB
             ========================================================================= */}
         {currentPage === "profile" && (
           <>
-            <div className="banana-generic-container">
-              <AvatarSelector user={user} onUpdate={(updated) => setUser(updated)} />
+            <div className="banana-generic-container banana-profile-container">
+              <section className="banana-profile-card">
+                <div className="banana-profile-avatar" aria-hidden="true">
+                  {currentAvatarInfo.emoji}
+                </div>
+                <p className="banana-profile-welcome">Welcome to Banana Quest,</p>
+                <h1 className="banana-profile-name">{user?.username || "Player"}!</h1>
+                <p className="banana-profile-title">{user?.title || currentAvatarInfo.title}</p>
+
+                <div className="banana-profile-stats">
+                  <div className="banana-profile-stat">
+                    <strong>{user?.totalPoints ?? 0}</strong>
+                    <span>Total points</span>
+                  </div>
+                  <div className="banana-profile-stat">
+                    <strong>{user?.bananaCoins ?? 0}</strong>
+                    <span>Banana coins</span>
+                  </div>
+                  <div className="banana-profile-stat">
+                    <strong>{user?.gamesPlayed ?? 0}</strong>
+                    <span>Games played</span>
+                  </div>
+                  <div className="banana-profile-stat">
+                    <strong>{user?.gamesWon ?? 0}</strong>
+                    <span>Games won</span>
+                  </div>
+                  <div className="banana-profile-stat">
+                    <strong>{user?.highestStreak ?? 0}</strong>
+                    <span>Best streak</span>
+                  </div>
+                </div>
+
+                <h2 className="banana-profile-section-title">Player details</h2>
+                <div className="banana-profile-details">
+                  <div className="banana-profile-detail">
+                    <span>EMAIL</span>
+                    <strong>{user?.email || "Not provided"}</strong>
+                  </div>
+                  <div className="banana-profile-detail">
+                    <span>BANANA PERSONA</span>
+                    <strong>{currentAvatarInfo.name}</strong>
+                  </div>
+                  <div className="banana-profile-detail">
+                    <span>MEMBER SINCE</span>
+                    <strong>{memberSince}</strong>
+                  </div>
+                  <div className="banana-profile-detail">
+                    <span>SIGN-IN METHOD</span>
+                    <strong>{loginMethods}</strong>
+                  </div>
+                </div>
+
+                <div className="banana-profile-badges">
+                  <h2 className="banana-profile-section-title">Badges earned</h2>
+                  {user?.badges?.length ? (
+                    <div className="banana-profile-badge-list">
+                      {user.badges.map((badge) => (
+                        <span className="banana-profile-badge" key={badge}>
+                          🏅 {badge}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="banana-profile-empty">No badges earned yet. Play a game to get started!</p>
+                  )}
+                </div>
+              </section>
             </div>
             <footer className="choose-level-footer gd-footer-cyan">
               Banana Quest

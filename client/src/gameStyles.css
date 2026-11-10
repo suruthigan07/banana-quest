@@ -483,13 +483,15 @@
   background: #06b6d4;
   color: #000000;
   font-family: var(--font-arcade);
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 900;
   letter-spacing: 1.5px;
   text-align: center;
-  padding: 14px 20px;
+  padding: 12px 20px;
   text-transform: uppercase;
   border-top: 2px solid #0891b2;
+  flex-shrink: 0;
+  width: 100%;
 }
 
 /* Responsive adjustments for window layout */
@@ -2844,38 +2846,45 @@ input.gd-numeric-input::placeholder {
 
 .banana-theme-page {
   min-height: 100vh;
-  padding: 24px 16px 40px;
+  padding: 0;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   background: radial-gradient(circle at 50% 10%, #fffbeb 0%, #fef9c3 40%, #fef08a 100%);
   position: relative;
 }
 
 .banana-quest-window {
   width: 100%;
-  max-width: 1220px;
+  max-width: 100%;
   background: #fefce8;
-  border: 2px solid #fef08a;
-  border-radius: 20px;
-  box-shadow: 0 16px 48px rgba(180, 83, 9, 0.12), 0 2px 10px rgba(0, 0, 0, 0.04);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  flex: 1;
   position: relative;
   z-index: 1;
+  min-height: 100vh;
 }
 
 /* Top Navigation Bar */
 .banana-topbar {
   background: #1c1917;
   color: #ffffff;
-  padding: 12px 20px;
+  padding: 0 24px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   border-bottom: 2px solid #ca8a04;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
 }
 
 .banana-topbar-left {
@@ -2901,10 +2910,14 @@ input.gd-numeric-input::placeholder {
 .banana-nav-tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
 }
 
 .banana-tab-btn {
+  flex: 0 0 132px;
+  justify-content: center;
   background: transparent;
   color: #d6d3d1;
   border: none;
@@ -2917,7 +2930,8 @@ input.gd-numeric-input::placeholder {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.18s ease;
+  white-space: nowrap;
+  transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .banana-tab-btn:hover {
@@ -3057,18 +3071,20 @@ input.gd-numeric-input::placeholder {
    ========================================================================= */
 .banana-page1-body {
   display: grid;
-  grid-template-columns: 290px 1fr;
+  grid-template-columns: 280px 1fr;
   background: #fefce8;
-  min-height: 520px;
+  flex: 1;
+  min-height: 0;
 }
 
 .banana-left-sidebar {
-  padding: 24px 20px;
+  padding: 24px 18px;
   background: #fffef5;
   border-right: 1px solid #fef08a;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
 }
 
 .sidebar-profile-card {
@@ -3173,10 +3189,11 @@ input.gd-numeric-input::placeholder {
 }
 
 .banana-main-content {
-  padding: 30px;
+  padding: 28px 30px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto;
 }
 
 .banana-level-heading-area {
@@ -3311,11 +3328,13 @@ input.gd-numeric-input::placeholder {
    ========================================================================= */
 .banana-page2-body {
   display: grid;
-  grid-template-columns: 210px minmax(420px, 1fr) 280px;
+  grid-template-columns: 200px minmax(0, 1fr) 260px;
   gap: 20px;
-  padding: 24px;
+  padding: 20px 24px;
   background: #fefce8;
-  min-height: 520px;
+  flex: 1;
+  min-height: 0;
+  align-items: start;
 }
 
 /* Left Sidebar (Widgets) */
@@ -3933,13 +3952,154 @@ input.banana-input-field::placeholder {
 .banana-generic-container {
   padding: 24px;
   background: #fefce8;
-  min-height: 480px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .banana-generic-container h2 {
   font-family: var(--font-arcade);
   color: #1c1917;
   margin-bottom: 16px;
+}
+
+.banana-profile-container {
+  display: grid;
+  place-items: start center;
+  padding: clamp(24px, 6vw, 64px) 24px;
+}
+
+.banana-profile-card {
+  width: min(100%, 900px);
+  padding: clamp(24px, 5vw, 44px);
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #fef08a;
+  border-radius: 20px;
+  box-shadow: 0 12px 32px rgba(180, 83, 9, 0.1);
+}
+
+.banana-profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: #fef9c3;
+  font-size: 42px;
+}
+
+.banana-profile-welcome {
+  margin: 0 0 4px;
+  color: #78716c;
+  font-size: 15px;
+}
+
+.banana-profile-name {
+  margin: 0;
+  color: #1c1917;
+  font-size: clamp(24px, 5vw, 34px);
+}
+
+.banana-profile-title {
+  margin: 8px 0 0;
+  color: #a16207;
+  font-family: var(--font-arcade);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.banana-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.banana-profile-stat {
+  display: grid;
+  gap: 4px;
+  padding: 16px 10px;
+  border: 1px solid #fef08a;
+  border-radius: 12px;
+  background: #fffbeb;
+}
+
+.banana-profile-stat strong {
+  color: #854d0e;
+  font-family: var(--font-arcade);
+  font-size: 22px;
+}
+
+.banana-profile-stat span {
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.banana-profile-section-title {
+  margin: 30px 0 12px;
+  color: #292524;
+  font-family: var(--font-arcade);
+  font-size: 16px;
+  text-align: left;
+}
+
+.banana-profile-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  text-align: left;
+}
+
+.banana-profile-detail {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #fef08a;
+  border-radius: 12px;
+  background: #fffbeb;
+}
+
+.banana-profile-detail span {
+  color: #a16207;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+.banana-profile-detail strong {
+  overflow-wrap: anywhere;
+  color: #292524;
+  font-size: 13px;
+}
+
+.banana-profile-badges {
+  text-align: left;
+}
+
+.banana-profile-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.banana-profile-badge {
+  padding: 9px 12px;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  background: #fef9c3;
+  color: #854d0e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.banana-profile-empty {
+  margin: 0;
+  color: #78716c;
+  font-size: 13px;
 }
 
 /* Responsive adjustments */
@@ -4645,5 +4805,139 @@ input.banana-input-field::placeholder {
   }
   .th-title, .col-title, .th-wins, .col-wins {
     display: none;
+  }
+}
+
+/* Keep the shared dashboard and leaderboard shell aligned to the viewport. */
+.banana-theme-page {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+.banana-quest-window {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.banana-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.banana-topbar-left {
+  min-width: 0;
+}
+
+.banana-nav-tabs {
+  min-width: 0;
+}
+
+.banana-topbar-right {
+  justify-self: end;
+  min-width: 0;
+}
+
+.banana-user-name {
+  display: inline-block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-neat-container {
+  flex: 1;
+}
+
+.choose-level-footer.gd-footer-cyan {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@media (max-width: 1120px) {
+  .banana-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: auto;
+    min-height: 56px;
+    row-gap: 8px;
+    padding: 8px 20px;
+  }
+
+  .banana-nav-tabs {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .banana-topbar {
+    column-gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .banana-brand-text {
+    font-size: 15px;
+  }
+
+  .banana-topbar-right {
+    gap: 8px;
+  }
+
+  .banana-mascot-fruit,
+  .mac-window-controls {
+    display: none;
+  }
+
+  .banana-user-btn {
+    padding: 6px 8px;
+  }
+
+  .banana-user-name {
+    max-width: 88px;
+  }
+
+  .banana-nav-tabs {
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .banana-tab-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .leaderboard-neat-container {
+    padding: 18px 14px;
+  }
+
+  .choose-level-footer.gd-footer-cyan {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .banana-profile-details {
+    grid-template-columns: 1fr;
+  }
+
+  .banana-profile-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

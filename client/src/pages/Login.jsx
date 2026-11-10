@@ -67,7 +67,6 @@ export default function Login({ onLogin }) {
     provider_email_missing: "The provider did not share an email address.",
     email_not_verified: "Your Google email could not be verified.",
     google_failed: "Google sign-in failed. Please try again.",
-    facebook_failed: "Facebook sign-in failed. Please try again.",
     social_login_failed: "Social sign-in failed. Please try again."
   };
 
@@ -141,14 +140,11 @@ export default function Login({ onLogin }) {
           <small className="demo-password-hint">Default password: <code>password123</code></small>
         </div>
 
-        <div className="separator"><span>OR SOCIAL IDENTITY</span></div>
+        <div className="separator"><span>OR CONTINUE WITH GOOGLE</span></div>
 
         <div className="social-buttons">
           <a className="social-button" href={socialLoginUrl("google")}>
             <span className="social-logo">G</span> Google Login
-          </a>
-          <a className="social-button" href={socialLoginUrl("facebook")}>
-            <span className="social-logo">f</span> Facebook
           </a>
         </div>
 

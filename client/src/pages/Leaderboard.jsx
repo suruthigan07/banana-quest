@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getLeaderboard, getCurrentUser } from "../services/authService";
 import BananaBackground from "../components/BananaBackground";
 import { MonkeyBannerIllustration } from "../components/LevelIllustrations";
@@ -63,7 +63,9 @@ export default function Leaderboard() {
               <span className="mac-dot dot-green" title="Expand" />
             </div>
             <div className="banana-window-title">
-              <span className="banana-brand-text">BANANA QUEST</span>
+              <Link to="/" className="banana-brand-text" aria-label="Banana Quest home">
+                BANANA QUEST
+              </Link>
             </div>
           </div>
 
