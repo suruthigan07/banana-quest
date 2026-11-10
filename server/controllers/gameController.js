@@ -4,6 +4,7 @@ import GameAnswer from "../models/GameAnswer.js";
 import { emitGameUpdate } from "../services/socketService.js";
 import {
   fetchBananaPuzzlesBatch,
+  fetchSingleBananaPuzzle,
   formatBananaAsQuestion
 } from "../services/bananaApiService.js";
 import {
@@ -402,5 +403,24 @@ export async function getGameAnswers(req, res) {
   } catch (error) {
     console.error("Get answers error:", error);
     return res.status(500).json({ message: "Could not load answer summary." });
+  }
+}
+
+export async function getRandomPuzzle(req, res) {
+  try {
+    const puzzle = await fetchSingleBananaPuzzle();
+    return res.json({
+      success: true,
+      puzzle: {
+        imageUrl: puzzle.question,
+        solution: puzzle.solution,
+        source: puzzle.source || "live_api",
+        category: "Banana Math",
+        prompt: "How many bananas are shown in the image?"
+      }
+    });
+  } catch (error) {
+    console.error("Get random puzzle error:", error);
+    return res.status(500).json({ message: "Could not fetch puzzle." });
   }
 }

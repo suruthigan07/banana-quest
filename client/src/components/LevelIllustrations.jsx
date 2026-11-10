@@ -178,3 +178,215 @@ export function HardMonkeyIllustration({ size = 95 }) {
   );
 }
 
+/**
+ * Cartoon illustration of a monkey holding a banana on a grassy hill
+ * with a speech bubble: "How many bananas are shown in the image?"
+ * Exactly matching the Game Dashboard UI specification!
+ */
+export function BananaPuzzleIllustration({ bananaCount = 1, width = "100%", height = 210 }) {
+  return (
+    <svg
+      viewBox="0 0 460 210"
+      width={width}
+      height={height}
+      style={{ display: "block", borderRadius: "16px", overflow: "hidden" }}
+    >
+      <defs>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#bae6fd" />
+          <stop offset="65%" stopColor="#e0f2fe" />
+          <stop offset="100%" stopColor="#f0f9ff" />
+        </linearGradient>
+        <linearGradient id="hillBack" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#4ade80" />
+          <stop offset="100%" stopColor="#22c55e" />
+        </linearGradient>
+        <linearGradient id="hillFront" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#86efac" />
+          <stop offset="100%" stopColor="#4ade80" />
+        </linearGradient>
+        <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000" floodOpacity="0.08" />
+        </filter>
+      </defs>
+
+      {/* Sky Background */}
+      <rect width="460" height="210" fill="url(#skyGrad)" />
+
+      {/* Clouds */}
+      <g fill="#ffffff" opacity="0.85">
+        <ellipse cx="70" cy="40" rx="32" ry="14" />
+        <ellipse cx="95" cy="36" rx="22" ry="16" />
+        <ellipse cx="50" cy="42" rx="20" ry="12" />
+
+        <ellipse cx="380" cy="35" rx="36" ry="15" />
+        <ellipse cx="405" cy="30" rx="24" ry="16" />
+        <ellipse cx="360" cy="38" rx="22" ry="12" />
+      </g>
+
+      {/* Background Trees / Bush */}
+      <circle cx="30" cy="120" r="32" fill="#15803d" />
+      <circle cx="60" cy="115" r="26" fill="#16a34a" />
+
+      {/* Back Hill */}
+      <path d="M-20 210 Q80 90 240 150 T480 140 L480 210 Z" fill="url(#hillBack)" />
+
+      {/* Front Grassy Hill */}
+      <path d="M-20 210 Q140 125 310 145 T480 180 L480 210 Z" fill="url(#hillFront)" />
+
+      {/* Little Stones on the Grass */}
+      <ellipse cx="140" cy="180" rx="14" ry="7" fill="#64748b" />
+      <ellipse cx="156" cy="182" rx="10" ry="5" fill="#94a3b8" />
+      <ellipse cx="128" cy="184" rx="7" ry="4" fill="#475569" />
+
+      {/* Grass Tufts */}
+      <path d="M100 170 L104 160 L108 172" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M320 180 L324 172 L328 182" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M260 176 L264 168 L268 178" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" />
+
+      {/* Monkey Mascot Standing on Grass */}
+      <g transform="translate(145, 45)">
+        {/* Tail */}
+        <path
+          d="M32 90 Q10 75 12 55 Q14 40 28 48 Q35 56 26 68 Q18 80 40 92"
+          fill="none"
+          stroke="#8D5B4C"
+          strokeWidth="6"
+          strokeLinecap="round"
+        />
+
+        {/* Feet */}
+        <ellipse cx="46" cy="118" rx="10" ry="6" fill="#8D5B4C" />
+        <ellipse cx="76" cy="118" rx="10" ry="6" fill="#8D5B4C" />
+
+        {/* Left Arm Resting / waving */}
+        <path d="M38 85 Q25 95 24 105" stroke="#8D5B4C" strokeWidth="7" strokeLinecap="round" fill="none" />
+
+        {/* Body */}
+        <ellipse cx="60" cy="92" rx="24" ry="22" fill="#8D5B4C" />
+        <ellipse cx="60" cy="95" rx="15" ry="14" fill="#FDE68A" />
+
+        {/* Right Arm Holding Banana */}
+        <path d="M82 85 Q96 78 96 68" stroke="#8D5B4C" strokeWidth="7" strokeLinecap="round" fill="none" />
+        <circle cx="97" cy="66" r="6" fill="#8D5B4C" />
+
+        {/* Banana in Hand */}
+        <path
+          d="M93 72 C98 56 112 40 126 44 C128 50 120 66 108 76 C99 82 92 80 93 72 Z"
+          fill="#FACC15"
+          stroke="#CA8A04"
+          strokeWidth="2"
+        />
+        <circle cx="126" cy="44" r="2.5" fill="#65A30D" />
+        <path d="M93 72 C91 75 88 77 86 78" stroke="#78350F" strokeWidth="2" strokeLinecap="round" />
+
+        {/* If bananaCount >= 2, extra bananas on the ground! */}
+        {bananaCount >= 2 && (
+          <g transform="translate(-40, 70)">
+            <path
+              d="M0 16 C8 4 20 -4 30 -2 C32 2 26 12 18 18 C10 22 4 22 0 16 Z"
+              fill="#FACC15"
+              stroke="#CA8A04"
+              strokeWidth="1.5"
+            />
+            <circle cx="30" cy="-2" r="2" fill="#65A30D" />
+          </g>
+        )}
+        {bananaCount >= 3 && (
+          <g transform="translate(45, 68)">
+            <path
+              d="M0 16 C8 4 20 -4 30 -2 C32 2 26 12 18 18 C10 22 4 22 0 16 Z"
+              fill="#FACC15"
+              stroke="#CA8A04"
+              strokeWidth="1.5"
+            />
+            <circle cx="30" cy="-2" r="2" fill="#65A30D" />
+          </g>
+        )}
+
+        {/* Ears */}
+        <circle cx="28" cy="48" r="14" fill="#8D5B4C" />
+        <circle cx="28" cy="48" r="8" fill="#FDE68A" opacity="0.6" />
+        <circle cx="92" cy="48" r="14" fill="#8D5B4C" />
+        <circle cx="92" cy="48" r="8" fill="#FDE68A" opacity="0.6" />
+
+        {/* Head */}
+        <circle cx="60" cy="50" r="32" fill="#8D5B4C" />
+
+        {/* Face Mask */}
+        <ellipse cx="51" cy="46" rx="13" ry="14" fill="#FDE68A" />
+        <ellipse cx="69" cy="46" rx="13" ry="14" fill="#FDE68A" />
+        <ellipse cx="60" cy="58" rx="17" ry="13" fill="#FDE68A" />
+
+        {/* Happy Curved Eyes */}
+        <path d="M47 47 Q52 41 57 47" stroke="#1E293B" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M63 47 Q68 41 73 47" stroke="#1E293B" strokeWidth="3" fill="none" strokeLinecap="round" />
+
+        {/* Soft Pink Cheeks */}
+        <ellipse cx="44" cy="56" rx="5" ry="3.5" fill="#FCA5A5" opacity="0.65" />
+        <ellipse cx="76" cy="56" rx="5" ry="3.5" fill="#FCA5A5" opacity="0.65" />
+
+        {/* Nose */}
+        <ellipse cx="60" cy="55" rx="3" ry="2" fill="#8D5B4C" />
+
+        {/* Joyful Mouth */}
+        <path d="M54 62 Q60 70 66 62" stroke="#8D5B4C" strokeWidth="2.5" strokeLinecap="round" fill="#EF4444" />
+      </g>
+
+      {/* White Speech Bubble */}
+      <g filter="url(#softShadow)">
+        <rect x="290" y="55" width="150" height="90" rx="16" fill="#ffffff" stroke="#e2e8f0" strokeWidth="1.5" />
+        {/* Pointer pointing to the monkey */}
+        <path d="M290 95 L272 102 L290 110 Z" fill="#ffffff" />
+        <path d="M290 95 L272 102 L290 110" stroke="#e2e8f0" strokeWidth="1.5" fill="none" />
+
+        {/* Speech Bubble Text */}
+        <text
+          x="365"
+          y="84"
+          fill="#1e293b"
+          fontSize="13"
+          fontWeight="700"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          textAnchor="middle"
+        >
+          How many
+        </text>
+        <text
+          x="365"
+          y="102"
+          fill="#1e293b"
+          fontSize="13"
+          fontWeight="700"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          textAnchor="middle"
+        >
+          bananas are
+        </text>
+        <text
+          x="365"
+          y="120"
+          fill="#1e293b"
+          fontSize="13"
+          fontWeight="700"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          textAnchor="middle"
+        >
+          shown in
+        </text>
+        <text
+          x="365"
+          y="136"
+          fill="#0284c7"
+          fontSize="13"
+          fontWeight="800"
+          fontFamily="system-ui, -apple-system, sans-serif"
+          textAnchor="middle"
+        >
+          the image?
+        </text>
+      </g>
+    </svg>
+  );
+}
+

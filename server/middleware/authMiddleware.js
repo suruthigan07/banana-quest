@@ -21,3 +21,19 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ message: "Your session is invalid or expired." });
   }
 }
+
+export async function optionalAuth(req, res, next) {
+  try {
+    const token = req.cookies?.quiz_token;
+    if (token) {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(payload.sub);
+      if (user) {
+        req.user = user;
+      }
+    }
+  } catch {
+    // continue without req.user
+  }
+  next();
+}

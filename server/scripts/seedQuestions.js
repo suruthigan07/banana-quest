@@ -138,6 +138,20 @@ async function seed() {
     
     const demoUsers = [
       {
+        username: "Alex",
+        email: "alex@banana.quest",
+        passwordHash: demoPasswordHash,
+        avatar: "banana-warrior",
+        title: "Puzzle Adventurer",
+        bananaCoins: 120,
+        highestStreak: 3,
+        totalPoints: 120,
+        gamesPlayed: 5,
+        gamesWon: 3,
+        badges: ["Banana Rookie", "First Steps", "Puzzle Adventurer"],
+        identities: [{ provider: "local", providerId: "alex@banana.quest" }]
+      },
+      {
         username: "BananaChamp",
         email: "player@banana.quest",
         passwordHash: demoPasswordHash,

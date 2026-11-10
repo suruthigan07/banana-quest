@@ -7,13 +7,16 @@ import {
   startGame,
   submitAnswer,
   nextQuestion,
-  getGameAnswers
+  getGameAnswers,
+  getRandomPuzzle
 } from "../controllers/gameController.js";
 
 const router = Router();
 
-router.use(requireAuth);
+// Public Banana API puzzle endpoint
+router.get("/puzzle/random", getRandomPuzzle);
 
+router.use(requireAuth);
 router.post("/", createGame);
 router.post("/:roomCode/join", joinGame);
 router.get("/:roomCode", getGame);

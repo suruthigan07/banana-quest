@@ -29,18 +29,37 @@ export default function Login({ onLogin }) {
       onLogin(result.user);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
+      const serverMsg = err.response?.data?.message;
+      if (serverMsg) {
+        setError(serverMsg);
+      } else if (!err.response) {
+        setError("Cannot connect to the server (port 5000). Please check if backend is running or check CORS.");
+      } else {
+        setError("Login failed. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  const fillQuickDemo = (role = "player") => {
+  const fillQuickDemo = (role = "alex") => {
     playClickSound();
-    setForm({
-      email: role === "player" ? "player@banana.quest" : "tutor@banana.quest",
-      password: "password123"
-    });
+    if (role === "alex") {
+      setForm({
+        email: "alex@banana.quest",
+        password: "password123"
+      });
+    } else if (role === "player") {
+      setForm({
+        email: "player@banana.quest",
+        password: "password123"
+      });
+    } else {
+      setForm({
+        email: "tutor@banana.quest",
+        password: "password123"
+      });
+    }
   };
 
   const oauthMessages = {
@@ -76,14 +95,14 @@ export default function Login({ onLogin }) {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label>Player Email</label>
+            <label>Player Email or Username</label>
             <input
               name="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               value={form.email}
               onChange={update}
-              placeholder="e.g. gamer@banana.quest"
+              placeholder="e.g. alex@banana.quest or Alex"
               required
             />
           </div>
@@ -109,13 +128,17 @@ export default function Login({ onLogin }) {
         <div className="quick-demo-login-box">
           <span className="quick-demo-label">Testing or Grading? Quick Fill:</span>
           <div className="quick-demo-buttons">
+            <button type="button" className="demo-chip-btn" onClick={() => fillQuickDemo("alex")}>
+              👦 Alex (Demo UI)
+            </button>
             <button type="button" className="demo-chip-btn" onClick={() => fillQuickDemo("player")}>
-              🎮 Fill Demo Player
+              🎮 Player
             </button>
             <button type="button" className="demo-chip-btn" onClick={() => fillQuickDemo("tutor")}>
-              👨‍🏫 Fill Tutor ID
+              👨‍🏫 Tutor
             </button>
           </div>
+          <small className="demo-password-hint">Default password: <code>password123</code></small>
         </div>
 
         <div className="separator"><span>OR SOCIAL IDENTITY</span></div>

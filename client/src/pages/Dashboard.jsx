@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import BananaBackground from "../components/BananaBackground";
 import AvatarSelector, { AVATAR_OPTIONS } from "../components/AvatarSelector";
 import {
@@ -8,16 +8,189 @@ import {
   MediumMonkeyIllustration,
   HardMonkeyIllustration
 } from "../components/LevelIllustrations";
-import { createGame } from "../services/gameService";
-import { isSoundEnabled, toggleSound, playClickSound, playStreakSound } from "../utils/audio";
+import { getRandomPuzzle } from "../services/gameService";
+import {
+  isSoundEnabled,
+  toggleSound,
+  playClickSound,
+  playCorrectSound,
+  playWrongSound,
+  playStreakSound
+} from "../utils/audio";
+
+const LEVEL_CONFIGS = {
+  easy: {
+    key: "easy",
+    title: "Easy",
+    puzzlesCount: 1,
+    rewardPoints: 10,
+    timeLimit: 60,
+    bulletPoints: ["Great for beginners", "1 Banana API puzzle", "Earn 10 points"],
+    btnClass: "btn-easy",
+    pillClass: "pill-easy",
+    cardClass: "card-easy"
+  },
+  medium: {
+    key: "medium",
+    title: "Medium",
+    puzzlesCount: 2,
+    rewardPoints: 25,
+    timeLimit: 88,
+    bulletPoints: ["A bit more challenging", "2 Banana API puzzles", "Earn 25 points"],
+    btnClass: "btn-medium",
+    pillClass: "pill-medium",
+    cardClass: "card-medium"
+  },
+  hard: {
+    key: "hard",
+    title: "Hard",
+    puzzlesCount: 3,
+    rewardPoints: 45,
+    timeLimit: 120,
+    bulletPoints: ["For experienced players", "3 Banana API puzzles", "Earn 45 points"],
+    btnClass: "btn-hard",
+    pillClass: "pill-hard",
+    cardClass: "card-hard"
+  }
+};
 
 export default function Dashboard({ user: initialUser, onLogout }) {
   const [user, setUser] = useState(initialUser);
+  // 2-page flow: "levels" (Page 1: Choose Level Form UI) -> "game" (Page 2: Game Dashboard UI)
+  const [currentPage, setCurrentPage] = useState("levels");
+  const [selectedLevelKey, setSelectedLevelKey] = useState("easy");
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
-  const [startingLevel, setStartingLevel] = useState(null);
-  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
-  const [error, setError] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+
+  // Requirements:
+  // 1. Points start with 0
+  const [score, setScore] = useState(0);
+
+  // 2. Current streak: starts with 0, checks and updates on answer/timeout
+  const [streak, setStreak] = useState(0);
+
+  // 3. Lives: starts with 3 full hearts (3 lives)
+  const [lives, setLives] = useState(3);
+
+  // 4. Level starts with 1
+  const [playerLevel, setPlayerLevel] = useState(1);
+
+  // 5. Timer: counts down, strictly reduces ONLY 1 life on time out
+  const [timerSeconds, setTimerSeconds] = useState(60);
+
+  // Banana Game Puzzle state (ONLY Banana API equation, no cartoon puzzle)
+  const [puzzleIndexInLevel, setPuzzleIndexInLevel] = useState(0);
+  const [userAnswer, setUserAnswer] = useState("");
+  const [feedback, setFeedback] = useState(null);
+  const [livePuzzle, setLivePuzzle] = useState(null);
+  const [loadingPuzzle, setLoadingPuzzle] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [levelCompletedMessage, setLevelCompletedMessage] = useState(null);
+
+  // Guard ref to guarantee strictly ONLY 1 life deduction per time out
+  const timeoutHandledRef = useRef(false);
+
+  // Recent Activity Feed matching the UI specification
+  const [recentActivity, setRecentActivity] = useState([
+    { id: 1, text: "Correct answer!", time: "1 min ago", type: "success" },
+    { id: 2, text: "Level 1 started", time: "2 min ago", type: "success" },
+    { id: 3, text: "Loaded new puzzle from Banana API", time: "2 min ago", type: "info" },
+    { id: 4, text: "Incorrect answer", time: "4 min ago", type: "error" },
+    { id: 5, text: "Level 1 completed", time: "5 min ago", type: "success" }
+  ]);
+
   const navigate = useNavigate();
+
+  // Load a fresh Marc Conrad Banana API puzzle
+  async function loadBananaPuzzle() {
+    setLoadingPuzzle(true);
+    try {
+      const res = await getRandomPuzzle();
+      if (res?.puzzle) {
+        setLivePuzzle(res.puzzle);
+        setRecentActivity((prev) => [
+          {
+            id: Date.now(),
+            text: "Loaded new puzzle from Banana API",
+            time: "Just now",
+            type: "info"
+          },
+          ...prev.slice(0, 5)
+        ]);
+      }
+    } catch (err) {
+      console.warn("Banana API fallback notice:", err.message);
+      // Fallback puzzle in case offline
+      setLivePuzzle({
+        imageUrl: "https://www.sanfoh.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png",
+        solution: 5,
+        source: "cached_fallback"
+      });
+    } finally {
+      setLoadingPuzzle(false);
+    }
+  }
+
+  // Pre-load on mount
+  useEffect(() => {
+    loadBananaPuzzle();
+  }, []);
+
+  const isGameOver = lives <= 0;
+
+  // 5. Timer Countdown
+  useEffect(() => {
+    if (currentPage !== "game" || isGameOver) return;
+
+    timeoutHandledRef.current = false;
+
+    const interval = setInterval(() => {
+      setTimerSeconds((prev) => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentPage, isGameOver]);
+
+  // Strict Single-Life Timeout Handler: triggers strictly ONLY 1 life decrease when timer reaches 0
+  useEffect(() => {
+    if (currentPage === "game" && timerSeconds === 0 && lives > 0 && !timeoutHandledRef.current) {
+      timeoutHandledRef.current = true;
+      playWrongSound();
+      setStreak(0); // Reset streak
+
+      // Strictly reduce ONLY 1 life
+      setLives((prevLives) => {
+        const nextLives = Math.max(0, prevLives - 1);
+        setFeedback({
+          type: "error",
+          text: `⏰ Time Out! You lost 1 life. (${nextLives} ${nextLives === 1 ? "life" : "lives"} remaining)`
+        });
+        return nextLives;
+      });
+
+      setRecentActivity((act) => [
+        {
+          id: Date.now(),
+          text: "Time Out! (-1 life)",
+          time: "Just now",
+          type: "error"
+        },
+        ...act.slice(0, 5)
+      ]);
+
+      // Reset timer for the next attempt so timerSeconds is immediately > 0
+      const limit = LEVEL_CONFIGS[selectedLevelKey]?.timeLimit || 60;
+      setTimeout(() => {
+        setTimerSeconds(limit);
+        timeoutHandledRef.current = false;
+      }, 50);
+    }
+  }, [timerSeconds, currentPage, selectedLevelKey, lives]);
 
   async function handleLogout() {
     playClickSound();
@@ -31,253 +204,714 @@ export default function Dashboard({ user: initialUser, onLogout }) {
     if (newState) playClickSound();
   }
 
-  async function handleStartLevel(level) {
+  // Format timer seconds into mm:ss
+  function formatTime(totalSec) {
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+
+  // Page 1 -> Page 2: Select Level and launch Banana Game
+  function handleStartLevel(levelKey) {
     playClickSound();
-    setStartingLevel(level);
-    setError("");
+    setSelectedLevelKey(levelKey);
+    setPuzzleIndexInLevel(0);
+    setLevelCompletedMessage(null);
+    setFeedback(null);
+    setUserAnswer("");
 
-    const config = {
-      easy: { count: 1, time: 15 },
-      medium: { count: 2, time: 15 },
-      hard: { count: 3, time: 15 }
-    };
+    const config = LEVEL_CONFIGS[levelKey];
+    setTimerSeconds(config.timeLimit);
+    timeoutHandledRef.current = false;
 
-    const selected = config[level] || config.easy;
+    // Load fresh Banana API puzzle
+    loadBananaPuzzle();
 
-    try {
-      const result = await createGame({
-        category: "Banana API",
-        mode: "banana",
-        questionCount: selected.count,
-        maxPlayers: 1,
-        timeLimitSeconds: selected.time,
-        isSolo: true
+    // Transition to Page 2: Game Dashboard
+    setCurrentPage("game");
+
+    setRecentActivity((prev) => [
+      {
+        id: Date.now(),
+        text: `Level ${config.title} started (${config.puzzlesCount} ${config.puzzlesCount === 1 ? "puzzle" : "puzzles"})`,
+        time: "Just now",
+        type: "success"
+      },
+      ...prev.slice(0, 5)
+    ]);
+  }
+
+  // Submit Answer in Banana Game (supports direct digit click or form submit)
+  function handleAnswerSubmit(digitValue) {
+    if (submitting || lives <= 0 || !livePuzzle) return;
+
+    const answerToCheck = digitValue !== undefined ? digitValue : userAnswer;
+    const parsedAns = parseInt(answerToCheck, 10);
+    if (isNaN(parsedAns)) return;
+
+    setSubmitting(true);
+    const expected = livePuzzle.solution;
+    const currentConfig = LEVEL_CONFIGS[selectedLevelKey];
+
+    if (parsedAns === expected) {
+      // Correct!
+      playCorrectSound();
+      const isFinalPuzzle = puzzleIndexInLevel + 1 >= currentConfig.puzzlesCount;
+
+      if (isFinalPuzzle) {
+        // Entire Level Completed!
+        playStreakSound(3);
+        const earnedPoints = currentConfig.rewardPoints;
+
+        setScore((prev) => prev + earnedPoints);
+        setStreak((prev) => prev + 1); // Streak check: increases on consecutive correct
+        setPlayerLevel((lvl) => lvl + 1); // Level increases on clearing level
+
+        setLevelCompletedMessage(
+          `🎉 Level Completed! You mastered ${currentConfig.title} and earned +${earnedPoints} Points!`
+        );
+        setFeedback({
+          type: "success",
+          text: `🎉 Correct answer (${expected})! ${currentConfig.title} level cleared! +${earnedPoints} Points`
+        });
+
+        setRecentActivity((prev) => [
+          {
+            id: Date.now(),
+            text: `${currentConfig.title} level completed (+${earnedPoints} pts)`,
+            time: "Just now",
+            type: "success"
+          },
+          ...prev.slice(0, 5)
+        ]);
+      } else {
+        // Solved one puzzle in multi-puzzle level
+        setScore((prev) => prev + 10);
+        setStreak((prev) => prev + 1);
+
+        setFeedback({
+          type: "success",
+          text: `🎉 Correct! Solved puzzle ${puzzleIndexInLevel + 1} of ${currentConfig.puzzlesCount}!`
+        });
+        setRecentActivity((prev) => [
+          {
+            id: Date.now(),
+            text: `Solved puzzle ${puzzleIndexInLevel + 1}/${currentConfig.puzzlesCount}`,
+            time: "Just now",
+            type: "success"
+          },
+          ...prev.slice(0, 5)
+        ]);
+      }
+
+      // Transition to next Banana API puzzle
+      setTimeout(() => {
+        setUserAnswer("");
+        setFeedback(null);
+        setSubmitting(false);
+
+        if (isFinalPuzzle) {
+          setPuzzleIndexInLevel(0);
+        } else {
+          setPuzzleIndexInLevel((p) => p + 1);
+        }
+
+        // Reset timer for next puzzle
+        setTimerSeconds(currentConfig.timeLimit);
+        timeoutHandledRef.current = false;
+        loadBananaPuzzle();
+      }, 1200);
+
+    } else {
+      // 3. Incorrect answer: Life decreases by strictly 1!
+      playWrongSound();
+      setStreak(0); // Streak check: reset streak on wrong answer
+
+      setLives((prevLives) => {
+        const nextLives = Math.max(0, prevLives - 1);
+        setFeedback({
+          type: "error",
+          text: `❌ Incorrect answer (${parsedAns}). You have ${nextLives} ${nextLives === 1 ? "life" : "lives"} remaining.`
+        });
+        return nextLives;
       });
-      playStreakSound(2);
-      navigate(`/game/${result.game.roomCode}`);
-    } catch (err) {
-      console.error("Failed to start level:", err);
-      setError(err.response?.data?.message || "Could not launch level. Please try again.");
-    } finally {
-      setStartingLevel(null);
+
+      setRecentActivity((prev) => [
+        {
+          id: Date.now(),
+          text: "Incorrect answer (-1 life)",
+          time: "Just now",
+          type: "error"
+        },
+        ...prev.slice(0, 5)
+      ]);
+
+      setTimeout(() => {
+        setSubmitting(false);
+      }, 1000);
     }
+  }
+
+  // Restart Challenge when lives reach 0
+  function handleRestartChallenge() {
+    playClickSound();
+    setLives(3);
+    setStreak(0);
+    setUserAnswer("");
+    setFeedback(null);
+    setLevelCompletedMessage(null);
+    setTimerSeconds(LEVEL_CONFIGS[selectedLevelKey]?.timeLimit || 60);
+    timeoutHandledRef.current = false;
+    setSubmitting(false);
+    loadBananaPuzzle();
+
+    setRecentActivity((prev) => [
+      { id: Date.now(), text: "Challenge restarted (3 lives restored)", time: "Just now", type: "info" },
+      ...prev.slice(0, 5)
+    ]);
   }
 
   const currentAvatarInfo =
     AVATAR_OPTIONS.find((a) => a.id === user?.avatar) || AVATAR_OPTIONS[0];
 
-  const pointsCount = user?.bananaCoins ?? user?.totalPoints ?? 120;
-  const streakDays = `${user?.highestStreak || 3} days`;
+  const currentConfig = LEVEL_CONFIGS[selectedLevelKey];
 
   return (
-    <main className="dashboard-page level-ui-dashboard">
+    <main className="dashboard-page banana-theme-page">
       <BananaBackground />
 
-      {/* Main Window Container with macOS-style UI */}
-      <div className="choose-level-window">
-        {/* 1. Top Navigation Bar */}
-        <header className="window-topbar">
-          <div className="window-controls">
-            <span className="mac-dot dot-red" title="Close" />
-            <span className="mac-dot dot-yellow" title="Minimize" />
-            <span className="mac-dot dot-green" title="Expand" />
+      <div className="banana-quest-window">
+        {/* =========================================================================
+            TOP NAVIGATION BAR (macOS Window Controls, Title, Center Nav, Profile & Coins)
+            ========================================================================= */}
+        <header className="banana-topbar">
+          <div className="banana-topbar-left">
+            <div className="mac-window-controls">
+              <span className="mac-dot dot-red" title="Close" />
+              <span className="mac-dot dot-yellow" title="Minimize" />
+              <span className="mac-dot dot-green" title="Expand" />
+            </div>
+            <div className="banana-window-title">
+              <span className="banana-brand-text">BANANA QUEST</span>
+            </div>
           </div>
 
-          <div className="topbar-right-group">
-            <div className="game-title-header">
-              <span className="title-banana-emoji">🍌</span>
-              <strong>BANANA QUEST</strong>
+          {/* Center Navigation Tabs */}
+          <nav className="banana-nav-tabs">
+            <button
+              className={`banana-tab-btn ${currentPage === "levels" ? "tab-active" : ""}`}
+              onClick={() => {
+                playClickSound();
+                setCurrentPage("levels");
+              }}
+            >
+              <span className="nav-icon">🗺️</span> Choose Level
+            </button>
+            <button
+              className={`banana-tab-btn ${currentPage === "game" ? "tab-active" : ""}`}
+              onClick={() => {
+                playClickSound();
+                setCurrentPage("game");
+              }}
+            >
+              <span className="nav-icon">🎮</span> Game
+            </button>
+            <button
+              className="banana-tab-btn"
+              onClick={() => {
+                playClickSound();
+                navigate("/leaderboard");
+              }}
+            >
+              <span className="nav-icon">🏆</span> Leaderboard
+            </button>
+            <button
+              className={`banana-tab-btn ${currentPage === "achievements" ? "tab-active" : ""}`}
+              onClick={() => {
+                playClickSound();
+                setCurrentPage("achievements");
+              }}
+            >
+              <span className="nav-icon">⭐</span> Achievements
+            </button>
+            <button
+              className={`banana-tab-btn ${currentPage === "profile" ? "tab-active" : ""}`}
+              onClick={() => {
+                playClickSound();
+                setCurrentPage("profile");
+              }}
+            >
+              <span className="nav-icon">👤</span> Profile
+            </button>
+          </nav>
+
+          {/* Right Side: Score Indicator (starts with 0) & User Dropdown */}
+          <div className="banana-topbar-right">
+            <div className="banana-score-pill" title="Your Banana Points">
+              <span className="pill-coin">🪙</span>
+              <strong className="pill-val">{score}</strong>
             </div>
 
-            <div className="user-profile-badge">
-              <span className="avatar-chip-emoji">{currentAvatarInfo.emoji}</span>
-              <span className="profile-username">{user?.username || "Alex"}</span>
-            </div>
+            <span className="banana-mascot-fruit" title="Banana Power">🍌</span>
 
-            <div className="currency-indicator">
-              <span className="coin-icon">🪙</span>
-              <strong className="coin-amount">{pointsCount}</strong>
-            </div>
-
-            <div className="utility-buttons">
+            <div className="banana-user-dropdown-container">
               <button
-                className="sound-toggle-btn small"
-                onClick={handleSoundToggle}
-                title="Toggle Sound"
+                className="banana-user-btn"
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
               >
-                {soundOn ? "🔊" : "🔇"}
+                <span className="banana-user-name">
+                  {currentAvatarInfo?.emoji ? `${currentAvatarInfo.emoji} ` : ""}
+                  {user?.username || "Alex"}
+                </span>
+                <span className="dropdown-caret">▼</span>
               </button>
-              <button
-                className="outline-button small-btn logout-btn"
-                onClick={handleLogout}
-                title="Log out"
-              >
-                Log out
-              </button>
+
+              {showUserDropdown && (
+                <div className="banana-dropdown-panel">
+                  <div className="banana-dropdown-header">
+                    <strong>{user?.username || "Alex"}</strong>
+                    <small>{user?.email || "alex@banana.quest"}</small>
+                  </div>
+                  <button className="banana-dropdown-item" onClick={handleSoundToggle}>
+                    {soundOn ? "🔊 Sound Effects: ON" : "🔇 Sound Effects: OFF"}
+                  </button>
+                  <button
+                    className="banana-dropdown-item"
+                    onClick={() => {
+                      setCurrentPage("profile");
+                      setShowUserDropdown(false);
+                    }}
+                  >
+                    🎭 Switch Banana Avatar
+                  </button>
+                  <button className="banana-dropdown-item logout-item" onClick={handleLogout}>
+                    🚪 Log out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        {error && <div className="game-alert-banner window-alert">⚠️ {error}</div>}
+        {/* =========================================================================
+            PAGE 1: CHOOSE LEVEL FORM UI ("3. Choose Level Form UI")
+            ========================================================================= */}
+        {currentPage === "levels" && (
+          <>
+            <div className="banana-page1-body">
+              {/* Left Sidebar: User Profile & Stats */}
+              <aside className="banana-left-sidebar">
+                <div className="sidebar-profile-card">
+                  <div className="sidebar-monkey-wrap">
+                    <MonkeyBannerIllustration size={92} />
+                  </div>
+                  <h3 className="sidebar-quest-title">BANANA QUEST</h3>
+                </div>
 
-        {/* 2 & 3. Split Layout: Left Sidebar + Main Content Area */}
-        <div className="window-body-grid">
-          {/* Left Sidebar (User Profile & Stats) */}
-          <aside className="window-sidebar">
-            <div className="sidebar-header-card">
-              <div className="monkey-illustration-wrap">
-                <MonkeyBannerIllustration size={105} />
-              </div>
-              <h3 className="sidebar-brand-text">BANANA QUEST</h3>
+                <div className="banana-welcome-box">
+                  <p>
+                    Hello, <strong>{user?.username || "Alex"}</strong>! Choose a level to start playing and earn points!
+                  </p>
+                </div>
+
+                <div className="banana-stats-box">
+                  {/* Your Points: Starts at 0 */}
+                  <div className="banana-stat-row">
+                    <div className="banana-stat-icon-wrap coin-icon">🪙</div>
+                    <div className="banana-stat-text">
+                      <span className="stat-tiny-label">Your Points</span>
+                      <strong className="stat-large-val">{score}</strong>
+                    </div>
+                  </div>
+
+                  {/* Current Streak: Starts at 0, checks and increments */}
+                  <div className="banana-stat-row">
+                    <div className="banana-stat-icon-wrap streak-icon">🏆</div>
+                    <div className="banana-stat-text">
+                      <span className="stat-tiny-label">Current Streak</span>
+                      <strong className="stat-large-val">{streak} days</strong>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              {/* Main Content Area: Level Selection */}
+              <section className="banana-main-content">
+                <div className="banana-level-heading-area">
+                  <h1 className="banana-main-title">Choose a level</h1>
+                  <p className="banana-main-subtitle">
+                    Each level has a different number of puzzles and rewards. You can choose any level to start!
+                  </p>
+                </div>
+
+                {/* 3 Distinct Level Cards */}
+                <div className="banana-level-cards-grid">
+                  {/* Card 1: Easy */}
+                  <div className="banana-card-box card-easy">
+                    <div className="level-art-wrap">
+                      <EasyMonkeyIllustration size={85} />
+                    </div>
+                    <h2 className="level-card-name title-easy">Easy</h2>
+                    <div className="level-pill-badge pill-easy">1 puzzle • 10 points</div>
+                    <ul className="level-features-list">
+                      <li>Great for beginners</li>
+                      <li>1 Banana API puzzle</li>
+                      <li>Earn 10 points</li>
+                    </ul>
+                    <button
+                      type="button"
+                      className="banana-card-btn btn-easy"
+                      onClick={() => handleStartLevel("easy")}
+                    >
+                      Start Easy
+                    </button>
+                  </div>
+
+                  {/* Card 2: Medium */}
+                  <div className="banana-card-box card-medium">
+                    <div className="level-art-wrap">
+                      <MediumMonkeyIllustration size={85} />
+                    </div>
+                    <h2 className="level-card-name title-medium">Medium</h2>
+                    <div className="level-pill-badge pill-medium">2 puzzles • 25 points</div>
+                    <ul className="level-features-list">
+                      <li>A bit more challenging</li>
+                      <li>2 Banana API puzzles</li>
+                      <li>Earn 25 points</li>
+                    </ul>
+                    <button
+                      type="button"
+                      className="banana-card-btn btn-medium"
+                      onClick={() => handleStartLevel("medium")}
+                    >
+                      Start Medium
+                    </button>
+                  </div>
+
+                  {/* Card 3: Hard */}
+                  <div className="banana-card-box card-hard">
+                    <div className="level-art-wrap">
+                      <HardMonkeyIllustration size={85} />
+                    </div>
+                    <h2 className="level-card-name title-hard">Hard</h2>
+                    <div className="level-pill-badge pill-hard">3 puzzles • 45 points</div>
+                    <ul className="level-features-list">
+                      <li>For experienced players</li>
+                      <li>3 Banana API puzzles</li>
+                      <li>Earn 45 points</li>
+                    </ul>
+                    <button
+                      type="button"
+                      className="banana-card-btn btn-hard"
+                      onClick={() => handleStartLevel("hard")}
+                    >
+                      Start Hard
+                    </button>
+                  </div>
+                </div>
+              </section>
             </div>
 
-            <div className="welcome-message-box">
-              <p>
-                Hello, <strong>{user?.username || "Alex"}</strong>! Choose a level to start playing and earn points!
-              </p>
+            {/* Footer for Page 1 */}
+            <footer className="choose-level-footer gd-footer-cyan">
+              3. Choose Level Form UI
+            </footer>
+          </>
+        )}
+
+        {/* =========================================================================
+            PAGE 2: GAME DASHBOARD ("4. Game Dashboard")
+            ========================================================================= */}
+        {currentPage === "game" && (
+          <>
+            <div className="banana-page2-body">
+              {/* Left Sidebar: Player Statistics */}
+              <aside className="banana-game-sidebar">
+                {/* Score Card (Starts at 0) */}
+                <div className="banana-widget-card score-widget">
+                  <div className="widget-icon-wrap circle-score">
+                    <span>🏆</span>
+                  </div>
+                  <div className="widget-text-col">
+                    <span className="widget-label">Score</span>
+                    <strong className="widget-value">{score}</strong>
+                  </div>
+                </div>
+
+                {/* Lives Card (3 Hearts: ❤️❤️❤️, decreases strictly 1 on wrong or timeout) */}
+                <div className="banana-widget-card lives-widget">
+                  <div className="widget-icon-wrap circle-lives">
+                    <span>❤️</span>
+                  </div>
+                  <div className="widget-text-col">
+                    <span className="widget-label">Lives ({lives}/3)</span>
+                    <div className="banana-hearts-row">
+                      <span className={`banana-heart ${lives >= 1 ? "full" : "empty"}`}>
+                        {lives >= 1 ? "❤️" : "🤍"}
+                      </span>
+                      <span className={`banana-heart ${lives >= 2 ? "full" : "empty"}`}>
+                        {lives >= 2 ? "❤️" : "🤍"}
+                      </span>
+                      <span className={`banana-heart ${lives >= 3 ? "full" : "empty"}`}>
+                        {lives >= 3 ? "❤️" : "🤍"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Level Card (Starts at Level 1) */}
+                <div className="banana-widget-card level-widget">
+                  <div className="widget-icon-wrap circle-level">
+                    <span>📊</span>
+                  </div>
+                  <div className="widget-text-col">
+                    <span className="widget-label">Level</span>
+                    <strong className="widget-value">{playerLevel}</strong>
+                    <span className="widget-subtitle">Puzzle Explorer</span>
+                  </div>
+                </div>
+
+                {/* Timer Card (Decreases ONLY 1 life at 0 and announces Time Out) */}
+                <div className="banana-widget-card timer-widget">
+                  <div className="widget-icon-wrap circle-timer">
+                    <span>⏱️</span>
+                  </div>
+                  <div className="widget-text-col">
+                    <span className="widget-label">Timer</span>
+                    <strong className="widget-value timer-digits">
+                      {formatTime(timerSeconds)}
+                    </strong>
+                  </div>
+                </div>
+              </aside>
+
+              {/* Main Content Area: Authentic Marc Conrad Banana Game Puzzle */}
+              <section className="banana-challenge-area">
+                {/* Back to Level Select Bar */}
+                <div className="banana-nav-action-bar">
+                  <button
+                    type="button"
+                    className="banana-back-btn"
+                    onClick={() => {
+                      playClickSound();
+                      setCurrentPage("levels");
+                    }}
+                  >
+                    ⬅ Choose Level
+                  </button>
+
+                  <div className="banana-level-pill-tag">
+                    <span className="level-badge-chip">
+                      LEVEL: {currentConfig.title.toUpperCase()}
+                    </span>
+                    <span className="level-progress-chip">
+                      Puzzle {puzzleIndexInLevel + 1} of {currentConfig.puzzlesCount} • Reward: +{currentConfig.rewardPoints} Pts
+                    </span>
+                  </div>
+                </div>
+
+                {/* Level Cleared Message Banner */}
+                {levelCompletedMessage && (
+                  <div className="banana-celebration-banner">
+                    <p>{levelCompletedMessage}</p>
+                  </div>
+                )}
+
+                {/* Banana Game Challenge Box */}
+                <div className="banana-puzzle-card-neat">
+                  <div className="banana-puzzle-header">
+                    <h2>Banana Puzzle Challenge</h2>
+                    <p>Solve the Banana Math Equation to find the missing single digit (0–9).</p>
+                  </div>
+
+                  {/* Equation Visual Area (ONLY Banana Game Equation, NO cartoon puzzle) */}
+                  <div className="banana-equation-stage">
+                    {loadingPuzzle ? (
+                      <div className="equation-loading-placeholder">
+                        <span className="loading-banana-spinner">🍌</span>
+                        <p>Fetching Banana API Equation...</p>
+                      </div>
+                    ) : livePuzzle?.imageUrl ? (
+                      <div className="equation-image-card">
+                        <div className="equation-badge-row">
+                          <span className="equation-source-tag">⚡ Live Banana API Puzzle</span>
+                          <span className="equation-hint-tag">Find the missing digit value: ?</span>
+                        </div>
+                        <img
+                          src={livePuzzle.imageUrl}
+                          alt="Marc Conrad Banana Math Puzzle"
+                          className="banana-equation-img"
+                        />
+                      </div>
+                    ) : (
+                      <div className="equation-loading-placeholder">
+                        <p>Connecting to Banana API...</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Feedback Banner (Correct, Wrong, or Time Out) */}
+                  {feedback && (
+                    <div className={`banana-feedback-box ${feedback.type}`}>
+                      {feedback.text}
+                    </div>
+                  )}
+
+                  {/* Quick Digit Selector Keypad (0 to 9) for Neat & Rapid Gameplay */}
+                  <div className="banana-digit-keypad-panel">
+                    <span className="keypad-title">Choose Solution (Digit 0–9):</span>
+                    <div className="keypad-buttons-grid">
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                        <button
+                          key={digit}
+                          type="button"
+                          className={`digit-btn ${userAnswer === String(digit) ? "active-digit" : ""}`}
+                          disabled={submitting || lives <= 0}
+                          onClick={() => {
+                            playClickSound();
+                            setUserAnswer(String(digit));
+                            handleAnswerSubmit(digit);
+                          }}
+                        >
+                          {digit}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Manual Numeric Input & Submit Button */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAnswerSubmit();
+                    }}
+                    className="banana-form-row"
+                  >
+                    <input
+                      type="number"
+                      min="0"
+                      max="9"
+                      value={userAnswer}
+                      onChange={(e) => setUserAnswer(e.target.value)}
+                      placeholder="Enter numeric answer (0-9)"
+                      className="banana-input-field"
+                      disabled={submitting || lives <= 0}
+                    />
+
+                    <button
+                      type="submit"
+                      className="banana-submit-action-btn"
+                      disabled={submitting || !userAnswer.trim() || lives <= 0}
+                    >
+                      {submitting ? "Checking..." : "Submit Answer"}
+                    </button>
+                  </form>
+
+                  {/* Out of Lives Game Over Card */}
+                  {lives <= 0 && (
+                    <div className="banana-gameover-card">
+                      <p>💔 Out of lives! Click below to reset your challenge.</p>
+                      <button
+                        type="button"
+                        className="banana-restart-btn"
+                        onClick={handleRestartChallenge}
+                      >
+                        🔄 Restart Challenge (3 Lives Restored)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* Right Sidebar: System Info & Recent Activity Feed */}
+              <aside className="banana-game-sidebar-right">
+                {/* Banana API Connected Widget */}
+                <div className="banana-sys-card">
+                  <div className="banana-pill-status pill-green">
+                    <span className="status-icon">🔗</span>
+                    <span className="status-text">Banana API Connected</span>
+                    <span className="status-check">✔</span>
+                  </div>
+                  <p className="sys-desc-text">Fetching puzzles from Banana API...</p>
+                </div>
+
+                {/* External API Widget */}
+                <div className="banana-sys-card">
+                  <div className="banana-pill-status pill-blue">
+                    <span className="status-icon">⚙️</span>
+                    <span className="status-text">Optional External API</span>
+                    <span className="status-link">↗</span>
+                  </div>
+                  <p className="sys-desc-text">
+                    This game can also use an external API for additional puzzles.
+                  </p>
+                </div>
+
+                {/* Recent Activity Feed */}
+                <div className="banana-sys-card activity-card">
+                  <div className="activity-heading-row">
+                    <span className="activity-clipboard">📋</span>
+                    <h3>Recent Activity</h3>
+                  </div>
+
+                  <div className="activity-items-list">
+                    {recentActivity.map((act) => (
+                      <div key={act.id} className="activity-row">
+                        <div className="activity-label-group">
+                          <span className={`status-dot dot-${act.type}`} />
+                          <span className="activity-text">{act.text}</span>
+                        </div>
+                        <span className="activity-time-tag">{act.time}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </aside>
             </div>
 
-            <div className="statistics-panel">
-              <h4 className="stats-panel-title">Player Stats</h4>
+            {/* Footer for Page 2 */}
+            <footer className="choose-level-footer gd-footer-cyan">
+              4. Game Dashboard
+            </footer>
+          </>
+        )}
 
-              <div className="stat-item-row">
-                <div className="stat-icon-wrap coin-stat-wrap">
-                  <span className="stat-emoji">🪙</span>
-                </div>
-                <div className="stat-text-col">
-                  <span className="stat-label">Your Points</span>
-                  <strong className="stat-val">{pointsCount}</strong>
-                </div>
-              </div>
-
-              <div className="stat-item-row">
-                <div className="stat-icon-wrap trophy-stat-wrap">
-                  <span className="stat-emoji">🏆</span>
-                </div>
-                <div className="stat-text-col">
-                  <span className="stat-label">Current Streak</span>
-                  <strong className="stat-val">{streakDays}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions in Sidebar */}
-            <div className="sidebar-extra-actions">
-              <Link to="/games/create" className="sidebar-action-btn" onClick={playClickSound}>
-                <span>🎮</span> Host Custom Room
-              </Link>
-              <Link to="/games/join" className="sidebar-action-btn" onClick={playClickSound}>
-                <span>🚀</span> Join Room Code
-              </Link>
-              <Link to="/leaderboard" className="sidebar-action-btn" onClick={playClickSound}>
-                <span>🏆</span> Hall of Fame
-              </Link>
-              <button
-                className="sidebar-action-btn"
-                onClick={() => {
-                  playClickSound();
-                  setShowPersonaPicker(!showPersonaPicker);
-                }}
-              >
-                <span>🎭</span> {showPersonaPicker ? "Hide Personas" : "Change Avatar"}
-              </button>
-            </div>
-          </aside>
-
-          {/* Main Content Area (Level Selection) */}
-          <section className="window-main-content">
-            <div className="level-selection-header">
-              <h1>Choose a level</h1>
-              <p className="level-selection-sub">
-                Each level has a different number of puzzles and rewards. You can choose any level to start!
-              </p>
-            </div>
-
-            {/* Three Level Cards (Easy, Medium, Hard) */}
-            <div className="level-cards-grid">
-              {/* Card 1: Easy */}
-              <div className="level-card card-easy">
-                <div className="level-illustration-container">
-                  <EasyMonkeyIllustration size={92} />
-                </div>
-                <h2 className="level-card-title title-easy">Easy</h2>
-                <div className="level-reward-pill pill-easy">
-                  1 puzzle • 10 points
-                </div>
-                <ul className="level-bullet-points">
-                  <li>Great for beginners</li>
-                  <li>1 fun puzzle</li>
-                  <li>Earn 10 points</li>
-                </ul>
-                <button
-                  className="level-action-btn btn-easy"
-                  disabled={Boolean(startingLevel)}
-                  onClick={() => handleStartLevel("easy")}
-                >
-                  {startingLevel === "easy" ? "Starting..." : "Start Easy"}
-                </button>
-              </div>
-
-              {/* Card 2: Medium */}
-              <div className="level-card card-medium">
-                <div className="level-illustration-container">
-                  <MediumMonkeyIllustration size={92} />
-                </div>
-                <h2 className="level-card-title title-medium">Medium</h2>
-                <div className="level-reward-pill pill-medium">
-                  2 puzzles • 25 points
-                </div>
-                <ul className="level-bullet-points">
-                  <li>A bit more challenging</li>
-                  <li>2 puzzles</li>
-                  <li>Earn 25 points</li>
-                </ul>
-                <button
-                  className="level-action-btn btn-medium"
-                  disabled={Boolean(startingLevel)}
-                  onClick={() => handleStartLevel("medium")}
-                >
-                  {startingLevel === "medium" ? "Starting..." : "Start Medium"}
-                </button>
-              </div>
-
-              {/* Card 3: Hard */}
-              <div className="level-card card-hard">
-                <div className="level-illustration-container">
-                  <HardMonkeyIllustration size={92} />
-                </div>
-                <h2 className="level-card-title title-hard">Hard</h2>
-                <div className="level-reward-pill pill-hard">
-                  3 puzzles • 45 points
-                </div>
-                <ul className="level-bullet-points">
-                  <li>For experienced players</li>
-                  <li>3 puzzles</li>
-                  <li>Earn 45 points</li>
-                </ul>
-                <button
-                  className="level-action-btn btn-hard"
-                  disabled={Boolean(startingLevel)}
-                  onClick={() => handleStartLevel("hard")}
-                >
-                  {startingLevel === "hard" ? "Starting..." : "Start Hard"}
-                </button>
+        {/* =========================================================================
+            ACHIEVEMENTS TAB
+            ========================================================================= */}
+        {currentPage === "achievements" && (
+          <>
+            <div className="banana-generic-container">
+              <h2>🏅 Player Badges & Milestones</h2>
+              <div className="badges-list">
+                {(user?.badges || ["Banana Rookie", "First Steps", "Puzzle Adventurer"]).map(
+                  (badge, idx) => (
+                    <span key={idx} className="game-badge-pill">
+                      ⭐ {badge}
+                    </span>
+                  )
+                )}
               </div>
             </div>
+            <footer className="choose-level-footer gd-footer-cyan">
+              Banana Quest
+            </footer>
+          </>
+        )}
 
-            {/* Optional Avatar Customizer Area (Collapsible) */}
-            {showPersonaPicker && (
-              <div className="inline-persona-section">
-                <AvatarSelector user={user} onUpdate={(updated) => setUser(updated)} />
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* 4. Footer Banner */}
-        <footer className="choose-level-footer">
-          3. Choose Level Form UI
-        </footer>
+        {/* =========================================================================
+            PROFILE & AVATAR CUSTOMIZER TAB
+            ========================================================================= */}
+        {currentPage === "profile" && (
+          <>
+            <div className="banana-generic-container">
+              <AvatarSelector user={user} onUpdate={(updated) => setUser(updated)} />
+            </div>
+            <footer className="choose-level-footer gd-footer-cyan">
+              Banana Quest
+            </footer>
+          </>
+        )}
       </div>
     </main>
   );
