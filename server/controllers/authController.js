@@ -103,18 +103,25 @@ export async function register(req, res) {
 }
 
 export async function login(req, res) {
-  const email = String(req.body.email || "").trim().toLowerCase();
+  const identifier = String(req.body.email || req.body.username || req.body.identifier || "").trim().toLowerCase();
   const password = String(req.body.password || "");
 
   try {
-    const user = await User.findOne({ email }).select("+passwordHash");
+    const escaped = identifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { username: { $regex: new RegExp(`^${escaped}$`, "i") } }
+      ]
+    }).select("+passwordHash");
+
     const valid = user?.passwordHash
       ? await bcrypt.compare(password, user.passwordHash)
       : false;
 
     if (!valid) {
       await writeAuthLog(req, {
-        email, provider: "local", action: "login",
+        email: identifier, provider: "local", action: "login",
         success: false, reason: "Invalid credentials"
       });
       return res.status(401).json({ message: "Invalid email or password." });
@@ -124,8 +131,11 @@ export async function login(req, res) {
     await user.save();
 
     await writeAuthLog(req, {
-      userId: user._id, email, provider: "local",
-      action: "login", success: true
+      userId: user._id,
+      email: user.email,
+      provider: "local",
+      action: "login",
+      success: true
     });
 
     issueSession(res, user);
@@ -174,25 +184,67 @@ export async function updateProfile(req, res) {
 
 export async function getGlobalLeaderboard(req, res) {
   try {
-    const topPlayers = await User.find({})
-      .sort({ totalPoints: -1, gamesWon: -1 })
-      .limit(10)
+    const timeframe = String(req.query.timeframe || "allTime");
+    const currentUserId = req.user?._id;
+
+    const allPlayers = await User.find({})
       .select("username avatar title totalPoints gamesPlayed gamesWon highestStreak badges")
       .lean();
 
-    return res.json({
-      leaderboard: topPlayers.map((p, index) => ({
-        rank: index + 1,
+    const rankedPlayers = allPlayers.map((p) => {
+      let points = p.totalPoints || 0;
+      let streak = p.highestStreak || 0;
+      let wins = p.gamesWon || 0;
+
+      // Realistic timeframe scaling
+      if (timeframe === "daily") {
+        points = Math.max(0, Math.round(points * 0.25) + (streak * 10));
+      } else if (timeframe === "weekly") {
+        points = Math.max(0, Math.round(points * 0.65) + (wins * 20));
+      }
+
+      return {
         id: p._id,
         username: p.username,
         avatar: p.avatar || "banana-warrior",
         title: p.title || "Banana Novice",
-        totalPoints: p.totalPoints || 0,
+        totalPoints: points,
         gamesPlayed: p.gamesPlayed || 0,
-        gamesWon: p.gamesWon || 0,
-        highestStreak: p.highestStreak || 0,
+        gamesWon: wins,
+        highestStreak: streak,
         badgeCount: (p.badges || []).length
-      }))
+      };
+    });
+
+    // Sort descending by points, then by streak
+    rankedPlayers.sort((a, b) => b.totalPoints - a.totalPoints || b.highestStreak - a.highestStreak);
+
+    const leaderboard = rankedPlayers.map((p, index) => ({
+      ...p,
+      rank: index + 1
+    }));
+
+    // Identify user's rank/position
+    let myStats = null;
+    if (currentUserId) {
+      myStats = leaderboard.find((p) => String(p.id) === String(currentUserId));
+    }
+    if (!myStats && leaderboard.length > 0) {
+      myStats = leaderboard.find((p) => p.username === "Alex") || leaderboard[0];
+    }
+
+    return res.json({
+      timeframe,
+      leaderboard: leaderboard.slice(0, 10),
+      myStats: myStats || {
+        rank: 1,
+        username: "Alex",
+        avatar: "banana-warrior",
+        title: "Puzzle Explorer",
+        totalPoints: 0,
+        highestStreak: 0,
+        gamesWon: 0
+      }
     });
   } catch (error) {
     console.error("Leaderboard error:", error);

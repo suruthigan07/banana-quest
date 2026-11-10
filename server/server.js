@@ -25,12 +25,27 @@ if (process.env.JWT_SECRET.length < 32) {
 
 const app = express();
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (origin === process.env.CLIENT_URL) return true;
+  // Allow localhost or 127.0.0.1 with any port (5173, 5174, 5175, 3000, etc.)
+  return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS origin not allowed: " + origin));
+    }
+  },
+  credentials: true
+};
+
 app.set("trust proxy", 1);
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "20kb" }));
 app.use(cookieParser());
 app.use(passport.initialize());
@@ -54,7 +69,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
-  cors: { origin: process.env.CLIENT_URL, credentials: true },
+  cors: corsOptions,
   transports: ["websocket", "polling"]
 });
 configureGameSockets(io);

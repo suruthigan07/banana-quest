@@ -4,7 +4,7 @@ import passport from "../config/passport.js";
 import {
   register, login, logout, me, socialLogin, updateProfile, getGlobalLeaderboard
 } from "../controllers/authController.js";
-import { requireAuth } from "../middleware/authMiddleware.js";
+import { requireAuth, optionalAuth } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.post("/login", authLimiter, login);
 router.post("/logout", requireAuth, logout);
 router.get("/me", requireAuth, me);
 router.put("/profile", requireAuth, updateProfile);
-router.get("/leaderboard", requireAuth, getGlobalLeaderboard);
+router.get("/leaderboard", optionalAuth, getGlobalLeaderboard);
 
 router.get(
   "/google",

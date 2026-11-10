@@ -14,3 +14,4 @@ export const submitAnswer = async (roomCode, selectedAnswerIndex) =>
   (await api.post(`/${roomCode}/answer`, { selectedAnswerIndex })).data;
 export const nextQuestion = async (roomCode) => (await api.post(`/${roomCode}/next`)).data;
 export const getGameAnswers = async (roomCode) => (await api.get(`/${roomCode}/answers`)).data;
+export const getRandomPuzzle = async () => (await api.get("/puzzle/random")).data;
