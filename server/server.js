@@ -1,6 +1,4 @@
-import dotenv from "dotenv";
-dotenv.config();
-dotenv.config({ path: "./server/.env" });
+import "./config/loadEnv.js";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";

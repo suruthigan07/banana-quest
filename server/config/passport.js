@@ -1,12 +1,16 @@
+import "./loadEnv.js";
 import passport from "passport";
+
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 
-const googleConfigured =
-  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+export const googleConfigured = Boolean(
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+);
 
-const facebookConfigured =
-  process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET;
+export const facebookConfigured = Boolean(
+  process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET
+);
 
 if (googleConfigured) {
   passport.use(
