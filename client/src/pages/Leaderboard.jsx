@@ -57,11 +57,6 @@ export default function Leaderboard() {
             ========================================================================= */}
         <header className="banana-topbar">
           <div className="banana-topbar-left">
-            <div className="mac-window-controls">
-              <span className="mac-dot dot-red" title="Close" />
-              <span className="mac-dot dot-yellow" title="Minimize" />
-              <span className="mac-dot dot-green" title="Expand" />
-            </div>
             <div className="banana-window-title">
               <Link to="/" className="banana-brand-text" aria-label="Banana Quest home">
                 BANANA QUEST

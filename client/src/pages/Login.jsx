@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginUser, socialLoginUrl } from "../services/authService";
-import BananaMascot from "../components/BananaMascot";
 import BananaBackground from "../components/BananaBackground";
+import { MonkeyBannerIllustration } from "../components/LevelIllustrations";
 import { playClickSound, playStreakSound } from "../utils/audio";
 
 export default function Login({ onLogin }) {
@@ -33,7 +33,7 @@ export default function Login({ onLogin }) {
       if (serverMsg) {
         setError(serverMsg);
       } else if (!err.response) {
-        setError("Cannot connect to the server (port 5000). Please check if backend is running or check CORS.");
+        setError("Cannot connect to the server. Please check if the backend is running.");
       } else {
         setError("Login failed. Please check your credentials.");
       }
@@ -41,26 +41,6 @@ export default function Login({ onLogin }) {
       setLoading(false);
     }
   }
-
-  const fillQuickDemo = (role = "alex") => {
-    playClickSound();
-    if (role === "alex") {
-      setForm({
-        email: "alex@banana.quest",
-        password: "password123"
-      });
-    } else if (role === "player") {
-      setForm({
-        email: "player@banana.quest",
-        password: "password123"
-      });
-    } else {
-      setForm({
-        email: "tutor@banana.quest",
-        password: "password123"
-      });
-    }
-  };
 
   const oauthMessages = {
     account_exists: "An account with this email already exists. Sign in using its original login method.",
@@ -71,87 +51,83 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <main className="auth-layout">
+    <main className="bq-auth-page">
       <BananaBackground />
 
-      <section className="arcade-card auth-card">
-        <div className="auth-mascot-row">
-          <BananaMascot state="idle" size={75} />
-          <div className="brand-header">
-            <span className="brand-title">BANANA QUEST</span>
-            <span className="arcade-tag">ARCADE AUTH</span>
+      <div className="bq-auth-window">
+        {/* Left panel — branding */}
+        <div className="bq-auth-left">
+          <div className="bq-auth-monkey">
+            <MonkeyBannerIllustration size={120} />
+          </div>
+          <h2 className="bq-auth-brand">BANANA QUEST</h2>
+          <p className="bq-auth-tagline">Solve puzzles. Earn bananas. Climb the leaderboard.</p>
+          <div className="bq-auth-features">
+            <div className="bq-auth-feat">🍌 Banana Math Puzzles</div>
+            <div className="bq-auth-feat">🏆 Global Leaderboard</div>
+            <div className="bq-auth-feat">⭐ Achievements & Rewards</div>
           </div>
         </div>
 
-        <p className="eyebrow">ENTER THE JUNGLE</p>
-        <h1>Player Sign In</h1>
-        <p className="muted">Log in with your Virtual Identity credentials.</p>
-
-        {oauthError && (
-          <div className="game-alert-banner">⚠️ {oauthMessages[oauthError] || "Authentication failed."}</div>
-        )}
-        {error && <div className="game-alert-banner">⚠️ {error}</div>}
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label>Player Email or Username</label>
-            <input
-              name="email"
-              type="text"
-              autoComplete="username"
-              value={form.email}
-              onChange={update}
-              placeholder="e.g. alex@banana.quest or Alex"
-              required
-            />
+        {/* Right panel — form */}
+        <div className="bq-auth-right">
+          <div className="bq-auth-form-header">
+            <span className="bq-auth-eyebrow">WELCOME BACK</span>
+            <h1 className="bq-auth-title">Sign In</h1>
+            <p className="bq-auth-sub">Enter your credentials to continue your quest.</p>
           </div>
 
-          <div className="form-group">
-            <label>Secret Password</label>
-            <input
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              value={form.password}
-              onChange={update}
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          {oauthError && (
+            <div className="bq-auth-alert">⚠️ {oauthMessages[oauthError] || "Authentication failed."}</div>
+          )}
+          {error && <div className="bq-auth-alert">⚠️ {error}</div>}
 
-          <button className="primary-button pulse-glow" disabled={loading}>
-            {loading ? "Authenticating Persona..." : "🍌 LAUNCH BANANA QUEST"}
-          </button>
-        </form>
+          <form onSubmit={handleSubmit} className="bq-auth-form">
+            <div className="bq-field">
+              <label className="bq-label">Email or Username</label>
+              <input
+                name="email"
+                type="text"
+                autoComplete="username"
+                value={form.email}
+                onChange={update}
+                placeholder="e.g. alex@banana.quest"
+                className="bq-input"
+                required
+              />
+            </div>
 
-        <div className="quick-demo-login-box">
-          <span className="quick-demo-label">Testing or Grading? Quick Fill:</span>
-          <div className="quick-demo-buttons">
-            <button type="button" className="demo-chip-btn" onClick={() => fillQuickDemo("alex")}>
-              👦 Alex (Demo UI)
+            <div className="bq-field">
+              <label className="bq-label">Password</label>
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                value={form.password}
+                onChange={update}
+                placeholder="••••••••"
+                className="bq-input"
+                required
+              />
+            </div>
+
+            <button className="bq-submit-btn" disabled={loading}>
+              {loading ? "Signing in..." : "🍌 Sign In"}
             </button>
-            <button type="button" className="demo-chip-btn" onClick={() => fillQuickDemo("player")}>
-              🎮 Player
-            </button>
-            <button type="button" className="demo-chip-btn" onClick={() => fillQuickDemo("tutor")}>
-              👨‍🏫 Tutor
-            </button>
-          </div>
-          <small className="demo-password-hint">Default password: <code>password123</code></small>
-        </div>
+          </form>
 
-        <div className="separator"><span>OR CONTINUE WITH GOOGLE</span></div>
-
-        <div className="social-buttons">
-          <a className="social-button" href={socialLoginUrl("google")}>
-            <span className="social-logo">G</span> Google Login
+          {/* Google login */}
+          <div className="bq-auth-divider"><span>or continue with</span></div>
+          <a className="bq-google-btn" href={socialLoginUrl("google")}>
+            <span className="bq-google-icon">G</span>
+            Sign in with Google
           </a>
-        </div>
 
-        <p className="bottom-text">
-          New to the Quest? <Link to="/register">Create Your Player Persona</Link>
-        </p>
-      </section>
+          <p className="bq-auth-footer-text">
+            New to Banana Quest? <Link to="/register">Create an account</Link>
+          </p>
+        </div>
+      </div>
     </main>
   );
 }
