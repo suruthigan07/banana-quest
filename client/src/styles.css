@@ -68,11 +68,14 @@ a:hover {
 /* Common Layouts */
 .auth-layout {
   min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
   position: relative;
   z-index: 1;
+  gap: 0;
 }
 
 .dashboard-page {
@@ -95,20 +98,20 @@ a:hover {
 .arcade-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  border-radius: 24px;
+  padding: 36px 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0,0,0,0.2);
   position: relative;
   z-index: 1;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .auth-card {
-  width: min(100%, 450px);
+  width: min(100%, 460px);
 }
 
 .auth-card.wide-auth {
-  width: min(100%, 520px);
+  width: min(100%, 540px);
 }
 
 .arcade-tag {
@@ -127,20 +130,21 @@ a:hover {
 .eyebrow {
   color: var(--banana-yellow);
   font-family: var(--font-arcade);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.5px;
-  margin: 10px 0 6px;
+  letter-spacing: 2px;
+  margin: 0 0 6px;
   text-transform: uppercase;
 }
 
 h1 {
   font-family: var(--font-arcade);
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   letter-spacing: -0.3px;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: #fff;
+  line-height: 1.2;
 }
 
 h2 {
@@ -159,15 +163,15 @@ h3 {
 .muted {
   color: var(--text-muted);
   line-height: 1.6;
-  font-size: 14px;
-  margin: 0 0 16px;
+  font-size: 13px;
+  margin: 0 0 4px;
 }
 
 /* Forms */
 .auth-form, .join-form, .game-settings-form {
   display: grid;
-  gap: 16px;
-  margin-top: 18px;
+  gap: 14px;
+  margin-top: 20px;
 }
 
 .form-group {
@@ -183,19 +187,25 @@ label {
 
 input, select {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 13px 15px;
+  padding: 12px 14px;
   outline: none;
   color: #fff;
   background: var(--bg-card);
-  font-size: 15px;
-  transition: border-color 0.18s ease, background-color 0.18s ease;
+  font-size: 14px;
+  transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
 }
 
 input:focus, select:focus {
   border-color: var(--banana-yellow);
-  background: #232e4d;
+  background: rgba(35, 46, 77, 0.8);
+  box-shadow: 0 0 0 3px rgba(255, 200, 0, 0.1);
 }
 
 /* Normal Casual Buttons */
@@ -203,17 +213,18 @@ input:focus, select:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   border: none;
   border-radius: 12px;
   padding: 14px 22px;
   color: #1a1600;
   background: linear-gradient(135deg, #ffd54f 0%, #ffc107 100%);
   font-family: var(--font-arcade);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.25);
+  box-shadow: 0 4px 16px rgba(255, 193, 7, 0.3);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -325,21 +336,21 @@ input:focus, select:focus {
   gap: 12px;
   color: var(--text-muted);
   font-family: var(--font-arcade);
-  font-size: 11px;
-  letter-spacing: 1.2px;
-  margin: 20px 0 12px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  margin: 22px 0 14px;
 }
 
 .separator::before, .separator::after {
   content: "";
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   flex: 1;
 }
 
 .social-buttons {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -347,61 +358,77 @@ input:focus, select:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 10px;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 12px 16px;
   background: var(--bg-card);
   color: var(--text-main);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
 }
 
 .social-button:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
 }
 
 .social-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  color: #4285F4;
+  border-radius: 4px;
   font-weight: 800;
   font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .bottom-text {
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
-  margin-top: 20px;
+  margin-top: 24px;
+  line-height: 1.6;
 }
 
 /* Quick Demo Filling Box */
 .quick-demo-login-box {
-  margin-top: 16px;
+  margin-top: 14px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(255, 200, 0, 0.05);
-  border: 1px dashed rgba(255, 200, 0, 0.25);
+  background: rgba(255, 200, 0, 0.04);
+  border: 1px dashed rgba(255, 200, 0, 0.2);
 }
 
 .quick-demo-label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--banana-yellow);
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   margin-bottom: 8px;
 }
 
 .quick-demo-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .demo-chip-btn {
   background: var(--bg-card);
-  border: 1px solid rgba(255, 200, 0, 0.25);
+  border: 1px solid rgba(255, 200, 0, 0.2);
   color: var(--text-main);
-  padding: 6px 12px;
+  padding: 5px 11px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -410,6 +437,7 @@ input:focus, select:focus {
 }
 
 .demo-chip-btn:hover {
-  background: rgba(255, 200, 0, 0.15);
+  background: rgba(255, 200, 0, 0.12);
   border-color: var(--banana-yellow);
+  color: var(--banana-yellow);
 }

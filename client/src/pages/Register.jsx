@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser } from "../services/authService";
-import BananaMascot from "../components/BananaMascot";
 import BananaBackground from "../components/BananaBackground";
+import { MonkeyBannerIllustration } from "../components/LevelIllustrations";
 import { AVATAR_OPTIONS } from "../components/AvatarSelector";
 import { playClickSound, playStreakSound } from "../utils/audio";
 
@@ -55,108 +55,120 @@ export default function Register({ onLogin }) {
   }
 
   return (
-    <main className="auth-layout">
+    <main className="bq-auth-page">
       <BananaBackground />
 
-      <section className="arcade-card auth-card wide-auth">
-        <div className="auth-mascot-row">
-          <BananaMascot state="idle" size={75} />
-          <div className="brand-header">
-            <span className="brand-title">BANANA QUEST</span>
-            <span className="arcade-tag">VIRTUAL IDENTITY</span>
+      <div className="bq-auth-window bq-auth-window--wide">
+        {/* Left panel — branding */}
+        <div className="bq-auth-left">
+          <div className="bq-auth-monkey">
+            <MonkeyBannerIllustration size={120} />
+          </div>
+          <h2 className="bq-auth-brand">BANANA QUEST</h2>
+          <p className="bq-auth-tagline">Join thousands of players solving banana math puzzles!</p>
+          <div className="bq-auth-features">
+            <div className="bq-auth-feat">🍌 Banana Math Puzzles</div>
+            <div className="bq-auth-feat">🏆 Global Leaderboard</div>
+            <div className="bq-auth-feat">⭐ Achievements & Rewards</div>
           </div>
         </div>
 
-        <p className="eyebrow">NEW PLAYER ENROLLMENT</p>
-        <h1>Create Your Player Persona</h1>
-        <p className="muted">
-          Your virtual identity tracks high scores, unlocked badges, and multiplayer presence.
-        </p>
-
-        {error && <div className="game-alert-banner">⚠️ {error}</div>}
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label>Player Username</label>
-            <input
-              name="username"
-              value={form.username}
-              onChange={update}
-              placeholder="e.g. BananaSlayer"
-              minLength={3}
-              maxLength={24}
-              required
-            />
+        {/* Right panel — form */}
+        <div className="bq-auth-right">
+          <div className="bq-auth-form-header">
+            <span className="bq-auth-eyebrow">NEW PLAYER</span>
+            <h1 className="bq-auth-title">Create Account</h1>
+            <p className="bq-auth-sub">Set up your player profile to start earning bananas.</p>
           </div>
 
-          <div className="form-group">
-            <label>Email Address</label>
-            <input
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={update}
-              placeholder="e.g. hero@banana.quest"
-              required
-            />
-          </div>
+          {error && <div className="bq-auth-alert">⚠️ {error}</div>}
 
-          <div className="form-grid-2col">
-            <div className="form-group">
-              <label>Password (min 8 chars)</label>
+          <form onSubmit={handleSubmit} className="bq-auth-form">
+            <div className="bq-field">
+              <label className="bq-label">Username</label>
               <input
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                value={form.password}
+                name="username"
+                value={form.username}
                 onChange={update}
-                minLength={8}
+                placeholder="e.g. BananaSlayer"
+                className="bq-input"
+                minLength={3}
+                maxLength={24}
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label>Confirm Password</label>
+            <div className="bq-field">
+              <label className="bq-label">Email Address</label>
               <input
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                value={form.confirmPassword}
+                name="email"
+                type="email"
+                autoComplete="email"
+                value={form.email}
                 onChange={update}
-                minLength={8}
+                placeholder="e.g. hero@banana.quest"
+                className="bq-input"
                 required
               />
             </div>
-          </div>
 
-          {/* Quick Avatar Selector */}
-          <div className="avatar-pick-section">
-            <label>Choose Starting Banana Persona</label>
-            <div className="mini-avatar-grid">
-              {AVATAR_OPTIONS.slice(0, 4).map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  className={`mini-avatar-btn ${form.avatar === item.id ? "mini-selected" : ""}`}
-                  onClick={() => selectAvatar(item.id)}
-                >
-                  <span className="mini-emoji">{item.emoji}</span>
-                  <span className="mini-name">{item.name}</span>
-                </button>
-              ))}
+            <div className="bq-field-row">
+              <div className="bq-field">
+                <label className="bq-label">Password (min 8 chars)</label>
+                <input
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={update}
+                  className="bq-input"
+                  minLength={8}
+                  required
+                />
+              </div>
+              <div className="bq-field">
+                <label className="bq-label">Confirm Password</label>
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  value={form.confirmPassword}
+                  onChange={update}
+                  className="bq-input"
+                  minLength={8}
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <button className="primary-button pulse-glow" disabled={loading}>
-            {loading ? "Forging Banana Identity..." : "🚀 FORGE PLAYER IDENTITY"}
-          </button>
-        </form>
+            {/* Avatar Picker */}
+            <div className="bq-avatar-pick">
+              <label className="bq-label">Choose your avatar</label>
+              <div className="bq-avatar-grid">
+                {AVATAR_OPTIONS.slice(0, 4).map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={`bq-avatar-btn ${form.avatar === item.id ? "bq-avatar-selected" : ""}`}
+                    onClick={() => selectAvatar(item.id)}
+                  >
+                    <span className="bq-avatar-emoji">{item.emoji}</span>
+                    <span className="bq-avatar-name">{item.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        <p className="bottom-text">
-          Already have a persona? <Link to="/login">Sign in here</Link>
-        </p>
-      </section>
+            <button className="bq-submit-btn" disabled={loading}>
+              {loading ? "Creating account..." : "🚀 Create Account"}
+            </button>
+          </form>
+
+          <p className="bq-auth-footer-text">
+            Already have an account? <Link to="/login">Sign in here</Link>
+          </p>
+        </div>
+      </div>
     </main>
   );
 }
