@@ -2,13 +2,16 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import BananaBackground from "../components/BananaBackground";
 import { AVATAR_OPTIONS } from "../components/AvatarSelector";
+import BungyBananaLogo from "../components/BungyBananaLogo";
 import {
   MonkeyBannerIllustration,
   EasyMonkeyIllustration,
   MediumMonkeyIllustration,
-  HardMonkeyIllustration
+  HardMonkeyIllustration,
+  LockedLevelIllustration
 } from "../components/LevelIllustrations";
 import { getRandomPuzzle } from "../services/gameService";
+import { recordGameScore } from "../services/authService";
 import {
   isSoundEnabled,
   toggleSound,
@@ -22,10 +25,17 @@ const LEVEL_CONFIGS = {
   easy: {
     key: "easy",
     title: "Easy",
+    minLevelRequired: 1,
     puzzlesCount: 1,
-    rewardPoints: 10,
+    rewardPoints: 30,
     timeLimit: 60,
-    bulletPoints: ["Great for beginners", "1 Banana API puzzle", "Earn 10 points"],
+    bulletPoints: [
+      "Great for beginners",
+      "Addition & Subtraction basics (+, −)",
+      "1 Banana API equation",
+      "Earn +30 points per level",
+      "Unlocks Medium at Level 5"
+    ],
     btnClass: "btn-easy",
     pillClass: "pill-easy",
     cardClass: "card-easy"
@@ -33,10 +43,17 @@ const LEVEL_CONFIGS = {
   medium: {
     key: "medium",
     title: "Medium",
+    minLevelRequired: 5,
     puzzlesCount: 2,
-    rewardPoints: 25,
+    rewardPoints: 60,
     timeLimit: 88,
-    bulletPoints: ["A bit more challenging", "2 Banana API puzzles", "Earn 25 points"],
+    bulletPoints: [
+      "Multiplication (×) & Division (÷)",
+      "BODMAS order of operations",
+      "2 Banana API equations",
+      "Earn +60 points per level",
+      "Unlocks Hard at Level 10"
+    ],
     btnClass: "btn-medium",
     pillClass: "pill-medium",
     cardClass: "card-medium"
@@ -44,10 +61,17 @@ const LEVEL_CONFIGS = {
   hard: {
     key: "hard",
     title: "Hard",
+    minLevelRequired: 10,
     puzzlesCount: 3,
-    rewardPoints: 45,
+    rewardPoints: 100,
     timeLimit: 120,
-    bulletPoints: ["For experienced players", "3 Banana API puzzles", "Earn 45 points"],
+    bulletPoints: [
+      "Advanced Multi-Operator (×, ÷, +, −)",
+      "Speed BODMAS calculations",
+      "3 Banana API equations",
+      "Earn +100 points per level",
+      "🏆 Jungle Champion Trophy"
+    ],
     btnClass: "btn-hard",
     pillClass: "pill-hard",
     cardClass: "card-hard"
@@ -56,26 +80,113 @@ const LEVEL_CONFIGS = {
 
 export default function Dashboard({ user: initialUser, onLogout }) {
   const user = initialUser;
+  const userId = initialUser?.id || initialUser?._id || "guest";
+
   // 2-page flow: "levels" (Page 1: Choose Level Form UI) -> "game" (Page 2: Game Dashboard UI)
   const [currentPage, setCurrentPage] = useState("levels");
   const [selectedLevelKey, setSelectedLevelKey] = useState("easy");
   const [soundOn, setSoundOn] = useState(isSoundEnabled());
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-  // Requirements:
-  // 1. Points start with 0
-  const [score, setScore] = useState(0);
+  // Persistent Player Score & Progression
+  const [score, setScore] = useState(() => {
+    try {
+      if (!localStorage.getItem("bq_v2_level_lock_reset")) {
+        return 0;
+      }
+      const saved = localStorage.getItem(`bq_score_${userId}`);
+      if (saved !== null && !isNaN(Number(saved))) {
+        return Number(saved);
+      }
+    } catch (e) {}
+    return 0;
+  });
 
-  // 2. Current streak: starts with 0, checks and updates on answer/timeout
+  // Current streak: starts with 0, checks and updates on answer/timeout
   const [streak, setStreak] = useState(0);
 
-  // 3. Lives: starts with 3 full hearts (3 lives)
+  // Lives: starts with 3 full hearts (3 lives)
   const [lives, setLives] = useState(3);
 
-  // 4. Level starts with 1
-  const [playerLevel, setPlayerLevel] = useState(1);
+  // Heart Break Animation States: when a life is lost, show heart breaking first, then empty heart
+  const [breakingHeartIndex, setBreakingHeartIndex] = useState(null);
+  const [showHeartBreakAlert, setShowHeartBreakAlert] = useState(false);
 
-  // 5. Timer: counts down, strictly reduces ONLY 1 life on time out
+  // Persistent Player Progression Level (Starts at 1: Level 1 = Easy, Level 5 = Medium Unlocked, Level 10 = Hard Unlocked)
+  const [playerLevel, setPlayerLevel] = useState(() => {
+    try {
+      // Automatic fresh start reset so Medium & Hard lock again following leaderboard restart
+      if (!localStorage.getItem("bq_v2_level_lock_reset")) {
+        localStorage.setItem("bq_v2_level_lock_reset", "true");
+        Object.keys(localStorage).forEach((k) => {
+          if (k.startsWith("bq_level_")) localStorage.setItem(k, "1");
+          if (k.startsWith("bq_score_")) localStorage.setItem(k, "0");
+        });
+        localStorage.setItem(`bq_level_${userId}`, "1");
+        localStorage.setItem(`bq_score_${userId}`, "0");
+        return 1;
+      }
+      const saved = localStorage.getItem(`bq_level_${userId}`);
+      if (saved !== null && !isNaN(Number(saved))) {
+        return Number(saved);
+      }
+    } catch (e) {}
+    return 1;
+  });
+
+  // Day Streak: calendar-based login streak (distinct from answer combo streak)
+  const [dayStreak, setDayStreak] = useState(() => {
+    try {
+      const uid = initialUser?.id || initialUser?._id || "guest";
+      const savedStreak = localStorage.getItem(`bq_day_streak_${uid}`);
+      const savedDate = localStorage.getItem(`bq_last_active_date_${uid}`);
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (savedDate && savedStreak) {
+        const lastDate = new Date(savedDate);
+        const todayDate = new Date(today);
+        const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) {
+          return Number(savedStreak) || 1;
+        } else if (diffDays === 1) {
+          const newStreak = (Number(savedStreak) || 0) + 1;
+          localStorage.setItem(`bq_day_streak_${uid}`, String(newStreak));
+          localStorage.setItem(`bq_last_active_date_${uid}`, today);
+          return newStreak;
+        } else {
+          // Streak broken - reset to 1
+          localStorage.setItem(`bq_day_streak_${uid}`, "1");
+          localStorage.setItem(`bq_last_active_date_${uid}`, today);
+          return 1;
+        }
+      }
+
+      // First visit
+      localStorage.setItem(`bq_day_streak_${uid}`, "1");
+      localStorage.setItem(`bq_last_active_date_${uid}`, today);
+      return initialUser?.dayStreak || 1;
+    } catch (e) {}
+    return initialUser?.dayStreak || 1;
+  });
+
+  // Synchronize with backend user data on mount/update only if no local values exist
+  useEffect(() => {
+    if (initialUser) {
+      const uid = initialUser.id || initialUser._id || "guest";
+      const savedLevel = localStorage.getItem(`bq_level_${uid}`);
+      const savedScore = localStorage.getItem(`bq_score_${uid}`);
+
+      if (savedLevel === null && typeof initialUser.playerLevel === "number") {
+        setPlayerLevel(initialUser.playerLevel);
+      }
+      if (savedScore === null && typeof initialUser.totalPoints === "number") {
+        setScore(initialUser.totalPoints);
+      }
+    }
+  }, [initialUser]);
+
+  // Timer: counts down, strictly reduces ONLY 1 life on time out
   const [timerSeconds, setTimerSeconds] = useState(60);
 
   // Banana Game Puzzle state (ONLY Banana API equation, no cartoon puzzle)
@@ -157,39 +268,52 @@ export default function Dashboard({ user: initialUser, onLogout }) {
     return () => clearInterval(interval);
   }, [currentPage, isGameOver]);
 
+  // Deduct 1 life with visual heart-break animation sequence
+  function deductLifeWithHeartBreak(reasonText, onDone) {
+    if (lives <= 0) return;
+    const targetHeartIdx = Math.max(0, lives - 1); // 2, 1, or 0
+    setBreakingHeartIndex(targetHeartIdx);
+    setShowHeartBreakAlert(true);
+    playWrongSound();
+
+    setTimeout(() => {
+      setLives((prevLives) => {
+        const nextLives = Math.max(0, prevLives - 1);
+        setBreakingHeartIndex(null);
+        setShowHeartBreakAlert(false);
+        setFeedback({
+          type: "error",
+          text: `${reasonText} (${nextLives} ${nextLives === 1 ? "life" : "lives"} remaining)`
+        });
+        if (onDone) onDone(nextLives);
+        return nextLives;
+      });
+    }, 850);
+  }
+
   // Strict Single-Life Timeout Handler: triggers strictly ONLY 1 life decrease when timer reaches 0
   useEffect(() => {
     if (currentPage === "game" && timerSeconds === 0 && lives > 0 && !timeoutHandledRef.current) {
       timeoutHandledRef.current = true;
-      playWrongSound();
       setStreak(0); // Reset streak
 
-      // Strictly reduce ONLY 1 life
-      setLives((prevLives) => {
-        const nextLives = Math.max(0, prevLives - 1);
-        setFeedback({
-          type: "error",
-          text: `⏰ Time Out! You lost 1 life. (${nextLives} ${nextLives === 1 ? "life" : "lives"} remaining)`
-        });
-        return nextLives;
+      deductLifeWithHeartBreak("⏰ Time Out! You lost 1 life.", () => {
+        setRecentActivity((act) => [
+          {
+            id: Date.now(),
+            text: "Time Out! (-1 life 💔)",
+            time: "Just now",
+            type: "error"
+          },
+          ...act.slice(0, 5)
+        ]);
+
+        const limit = LEVEL_CONFIGS[selectedLevelKey]?.timeLimit || 60;
+        setTimeout(() => {
+          setTimerSeconds(limit);
+          timeoutHandledRef.current = false;
+        }, 50);
       });
-
-      setRecentActivity((act) => [
-        {
-          id: Date.now(),
-          text: "Time Out! (-1 life)",
-          time: "Just now",
-          type: "error"
-        },
-        ...act.slice(0, 5)
-      ]);
-
-      // Reset timer for the next attempt so timerSeconds is immediately > 0
-      const limit = LEVEL_CONFIGS[selectedLevelKey]?.timeLimit || 60;
-      setTimeout(() => {
-        setTimerSeconds(limit);
-        timeoutHandledRef.current = false;
-      }, 50);
     }
   }, [timerSeconds, currentPage, selectedLevelKey, lives]);
 
@@ -214,6 +338,16 @@ export default function Dashboard({ user: initialUser, onLogout }) {
 
   // Page 1 -> Page 2: Select Level and launch Banana Game
   function handleStartLevel(levelKey) {
+    const config = LEVEL_CONFIGS[levelKey];
+    if (playerLevel < config.minLevelRequired) {
+      playWrongSound();
+      setFeedback({
+        type: "error",
+        text: `🔒 ${config.title} is locked! Reach Level ${config.minLevelRequired} to unlock.`
+      });
+      return;
+    }
+
     playClickSound();
     setSelectedLevelKey(levelKey);
     setPuzzleIndexInLevel(0);
@@ -221,7 +355,6 @@ export default function Dashboard({ user: initialUser, onLogout }) {
     setFeedback(null);
     setUserAnswer("");
 
-    const config = LEVEL_CONFIGS[levelKey];
     setTimerSeconds(config.timeLimit);
     timeoutHandledRef.current = false;
 
@@ -263,13 +396,43 @@ export default function Dashboard({ user: initialUser, onLogout }) {
         // Entire Level Completed!
         playStreakSound(3);
         const earnedPoints = currentConfig.rewardPoints;
+        const newScore = score + earnedPoints;
+        const newStreak = streak + 1;
 
-        setScore((prev) => prev + earnedPoints);
-        setStreak((prev) => prev + 1); // Streak check: increases on consecutive correct
-        setPlayerLevel((lvl) => lvl + 1); // Level increases on clearing level
+        // Level unlocking progression:
+        // Each level clear advances playerLevel by 1
+        // Level 5 unlocks Medium, Level 10 unlocks Hard
+        let nextLevel = playerLevel + 1;
+
+        setScore(newScore);
+        setStreak(newStreak);
+        setPlayerLevel(nextLevel);
+
+        // Persistent save to browser local storage
+        try {
+          const uid = user?.id || user?._id || "guest";
+          localStorage.setItem(`bq_score_${uid}`, String(newScore));
+          localStorage.setItem(`bq_level_${uid}`, String(nextLevel));
+        } catch (e) {}
+
+        // Persistent sync to MongoDB server
+        recordGameScore({
+          pointsEarned: earnedPoints,
+          playerLevel: nextLevel,
+          streak: newStreak,
+          dayStreak: dayStreak,
+          won: true
+        }).catch((err) => console.warn("Score sync notice:", err.message));
+
+        let unlockMsg = "";
+        if (playerLevel < 5 && nextLevel >= 5) {
+          unlockMsg = " 🔓 MEDIUM DIFFICULTY UNLOCKED (Level 5 reached)!";
+        } else if (playerLevel < 10 && nextLevel >= 10) {
+          unlockMsg = " 👑 HARD DIFFICULTY UNLOCKED (Level 10 reached)!";
+        }
 
         setLevelCompletedMessage(
-          `🎉 Level Completed! You mastered ${currentConfig.title} and earned +${earnedPoints} Points!`
+          `🎉 Level Completed! You mastered ${currentConfig.title} and earned +${earnedPoints} Points!${unlockMsg}`
         );
         setFeedback({
           type: "success",
@@ -287,8 +450,21 @@ export default function Dashboard({ user: initialUser, onLogout }) {
         ]);
       } else {
         // Solved one puzzle in multi-puzzle level
-        setScore((prev) => prev + 10);
-        setStreak((prev) => prev + 1);
+        const newScore = score + 10;
+        const newStreak = streak + 1;
+        setScore(newScore);
+        setStreak(newStreak);
+
+        try {
+          const uid = user?.id || user?._id || "guest";
+          localStorage.setItem(`bq_score_${uid}`, String(newScore));
+        } catch (e) {}
+
+        recordGameScore({
+          pointsEarned: 10,
+          streak: newStreak,
+          won: false
+        }).catch((err) => console.warn("Partial score sync notice:", err.message));
 
         setFeedback({
           type: "success",
@@ -324,39 +500,33 @@ export default function Dashboard({ user: initialUser, onLogout }) {
       }, 1200);
 
     } else {
-      // 3. Incorrect answer: Life decreases by strictly 1!
-      playWrongSound();
+      // 3. Incorrect answer: Show heart break animation, then deduct 1 life
       setStreak(0); // Streak check: reset streak on wrong answer
 
-      setLives((prevLives) => {
-        const nextLives = Math.max(0, prevLives - 1);
-        setFeedback({
-          type: "error",
-          text: `❌ Incorrect answer (${parsedAns}). You have ${nextLives} ${nextLives === 1 ? "life" : "lives"} remaining.`
-        });
-        return nextLives;
+      deductLifeWithHeartBreak(`❌ Incorrect answer (${parsedAns}).`, () => {
+        setRecentActivity((prev) => [
+          {
+            id: Date.now(),
+            text: "Incorrect answer (-1 life 💔)",
+            time: "Just now",
+            type: "error"
+          },
+          ...prev.slice(0, 5)
+        ]);
+
+        setTimeout(() => {
+          setSubmitting(false);
+        }, 300);
       });
-
-      setRecentActivity((prev) => [
-        {
-          id: Date.now(),
-          text: "Incorrect answer (-1 life)",
-          time: "Just now",
-          type: "error"
-        },
-        ...prev.slice(0, 5)
-      ]);
-
-      setTimeout(() => {
-        setSubmitting(false);
-      }, 1000);
     }
   }
 
-  // Restart Challenge when lives reach 0
+  // Restart Challenge when lives reach 0 (or when user clicks Try Again / New Game)
   function handleRestartChallenge() {
     playClickSound();
     setLives(3);
+    setBreakingHeartIndex(null);
+    setShowHeartBreakAlert(false);
     setStreak(0);
     setUserAnswer("");
     setFeedback(null);
@@ -368,6 +538,42 @@ export default function Dashboard({ user: initialUser, onLogout }) {
 
     setRecentActivity((prev) => [
       { id: Date.now(), text: "Challenge restarted (3 lives restored)", time: "Just now", type: "info" },
+      ...prev.slice(0, 5)
+    ]);
+  }
+
+  // Reset player progression back to Level 1 (locks Medium & Hard again)
+  function handleResetProgression() {
+    playClickSound();
+    if (!window.confirm("Restart progress back to Level 1? Medium and Hard levels will be locked again.")) return;
+    const uid = user?.id || user?._id || "guest";
+    setPlayerLevel(1);
+    setScore(0);
+    setStreak(0);
+    try {
+      localStorage.setItem(`bq_level_${uid}`, "1");
+      localStorage.setItem(`bq_score_${uid}`, "0");
+      localStorage.setItem("bq_level_guest", "1");
+      localStorage.setItem("bq_score_guest", "0");
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("bq_level_")) localStorage.setItem(key, "1");
+        if (key.startsWith("bq_score_")) localStorage.setItem(key, "0");
+      });
+    } catch (e) {}
+
+    recordGameScore({
+      pointsEarned: 0,
+      playerLevel: 1,
+      streak: 0,
+      won: false
+    }).catch(() => {});
+
+    setFeedback({
+      type: "info",
+      text: "🔄 Progression reset to Level 1! Medium and Hard are now locked."
+    });
+    setRecentActivity((prev) => [
+      { id: Date.now(), text: "Progression reset to Level 1 (Medium locked)", time: "Just now", type: "info" },
       ...prev.slice(0, 5)
     ]);
   }
@@ -406,20 +612,20 @@ export default function Dashboard({ user: initialUser, onLogout }) {
       category: "beginner",
       description: "Play and complete an Easy Level challenge.",
       requirement: 1,
-      current: playerLevel >= 2 ? 1 : 0,
+      current: playerLevel >= 5 ? 1 : 0,
       reward: 30,
-      unlocked: playerLevel >= 2
+      unlocked: playerLevel >= 5
     },
     {
       id: "puzzle_adventurer",
       icon: "🧭",
       title: "Puzzle Adventurer",
       category: "beginner",
-      description: "Advance to Level 2 or higher in the Banana Jungle.",
-      requirement: 2,
-      current: Math.min(2, playerLevel),
+      description: "Advance to Level 5 to unlock Medium difficulty.",
+      requirement: 5,
+      current: Math.min(5, playerLevel),
       reward: 50,
-      unlocked: playerLevel >= 2
+      unlocked: playerLevel >= 5
     },
     {
       id: "potassium_streak",
@@ -448,22 +654,22 @@ export default function Dashboard({ user: initialUser, onLogout }) {
       icon: "🎒",
       title: "Backpack Explorer",
       category: "master",
-      description: "Complete a Medium difficulty level challenge.",
+      description: "Unlock and complete a Medium difficulty level (Level 5+).",
       requirement: 1,
-      current: playerLevel >= 3 ? 1 : 0,
+      current: playerLevel >= 5 ? 1 : 0,
       reward: 80,
-      unlocked: playerLevel >= 3
+      unlocked: playerLevel >= 5
     },
     {
       id: "hardcore_climber",
       icon: "🧗",
       title: "Hardcore Climber",
       category: "master",
-      description: "Conquer a Hard difficulty challenge (3 puzzles • 45 pts).",
+      description: "Conquer Hard difficulty (Level 10+, 3 puzzles • 100 pts).",
       requirement: 1,
-      current: playerLevel >= 4 ? 1 : 0,
+      current: playerLevel >= 10 ? 1 : 0,
       reward: 150,
-      unlocked: playerLevel >= 4
+      unlocked: playerLevel >= 10
     },
     {
       id: "century_club",
@@ -511,8 +717,8 @@ export default function Dashboard({ user: initialUser, onLogout }) {
         <header className="banana-topbar">
           <div className="banana-topbar-left">
             <div className="banana-window-title">
-              <Link to="/" className="banana-brand-text" aria-label="Banana Quest home">
-                BANANA QUEST
+              <Link to="/" className="banana-brand-text" aria-label="Bungy Banana home">
+                <BungyBananaLogo size={36} showText={true} />
               </Link>
             </div>
           </div>
@@ -624,9 +830,9 @@ export default function Dashboard({ user: initialUser, onLogout }) {
               <aside className="banana-left-sidebar">
                 <div className="sidebar-profile-card">
                   <div className="sidebar-monkey-wrap">
-                    <MonkeyBannerIllustration size={92} />
+                    <BungyBananaLogo size={80} showText={false} />
                   </div>
-                  <h3 className="sidebar-quest-title">BANANA QUEST</h3>
+                  <h3 className="sidebar-quest-title">BUNGY BANANA</h3>
                 </div>
 
                 <div className="banana-welcome-box">
@@ -645,12 +851,23 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                     </div>
                   </div>
 
-                  {/* Current Streak: Starts at 0, checks and increments */}
+                  {/* Day Streak: Calendar-based login streak */}
                   <div className="banana-stat-row">
-                    <div className="banana-stat-icon-wrap streak-icon">🏆</div>
+                    <div className="banana-stat-icon-wrap streak-icon">🔥</div>
                     <div className="banana-stat-text">
-                      <span className="stat-tiny-label">Current Streak</span>
-                      <strong className="stat-large-val">{streak} days</strong>
+                      <span className="stat-tiny-label">Day Streak</span>
+                      <strong className="stat-large-val">{dayStreak} {dayStreak === 1 ? "day" : "days"}</strong>
+                    </div>
+                  </div>
+
+                  {/* Current Level Status */}
+                  <div className="banana-stat-row">
+                    <div className="banana-stat-icon-wrap" style={{ background: "rgba(250, 204, 21, 0.2)" }}>📊</div>
+                    <div className="banana-stat-text">
+                      <span className="stat-tiny-label">Player Level</span>
+                      <strong className="stat-large-val">
+                        Level {playerLevel}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -661,82 +878,101 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                 <div className="banana-level-heading-area">
                   <h1 className="banana-main-title">Choose a level</h1>
                   <p className="banana-main-subtitle">
-                    Each level has a different number of puzzles and rewards. You can choose any level to start!
+                    Each level has a different number of puzzles and rewards. Reach Level 5 to unlock Medium!
                   </p>
                 </div>
 
-                {/* 3 Distinct Level Cards */}
+                {/* 3 Distinct Level Cards with Progression Locking */}
                 <div className="banana-level-cards-grid">
-                  {/* Card 1: Easy */}
+                  {/* Card 1: Easy - Always Unlocked */}
                   <div className="banana-card-box card-easy">
                     <div className="level-art-wrap">
-                      <EasyMonkeyIllustration size={85} />
+                      <EasyMonkeyIllustration size={90} />
                     </div>
                     <h2 className="level-card-name title-easy">Easy</h2>
-                    <div className="level-pill-badge pill-easy">1 puzzle • 10 points</div>
+                    <div className="level-pill-badge pill-easy">1 puzzle • 30 points</div>
                     <ul className="level-features-list">
-                      <li>Great for beginners</li>
-                      <li>1 Banana API puzzle</li>
-                      <li>Earn 10 points</li>
+                      <li>Junior Explorer tier</li>
+                      <li>Addition & Subtraction basics (+, −)</li>
+                      <li>1 Banana API equation</li>
+                      <li>Earn +30 points per level</li>
+                      <li>{playerLevel >= 5 ? "Medium Level Unlocked ✔" : "Unlocks Medium at Level 5"}</li>
                     </ul>
                     <button
                       type="button"
                       className="banana-card-btn btn-easy"
                       onClick={() => handleStartLevel("easy")}
                     >
-                      Start Easy
+                      Start Easy ▶
                     </button>
                   </div>
 
-                  {/* Card 2: Medium */}
-                  <div className="banana-card-box card-medium">
+                  {/* Card 2: Medium - Unlocked at Level 5+ */}
+                  <div className={`banana-card-box card-medium ${playerLevel < 5 ? "card-locked" : ""}`}>
                     <div className="level-art-wrap">
-                      <MediumMonkeyIllustration size={85} />
+                      {playerLevel < 5 ? (
+                        <LockedLevelIllustration size={90} unlockLevel={5} />
+                      ) : (
+                        <MediumMonkeyIllustration size={90} />
+                      )}
                     </div>
-                    <h2 className="level-card-name title-medium">Medium</h2>
-                    <div className="level-pill-badge pill-medium">2 puzzles • 25 points</div>
+                    <h2 className={`level-card-name ${playerLevel < 5 ? "title-locked" : "title-medium"}`}>
+                      Medium {playerLevel < 5 && "🔒"}
+                    </h2>
+                    <div className={`level-pill-badge ${playerLevel < 5 ? "pill-locked" : "pill-medium"}`}>
+                      {playerLevel < 5 ? "🔒 LOCKED • Reach Level 5" : "2 puzzles • 60 points"}
+                    </div>
                     <ul className="level-features-list">
-                      <li>A bit more challenging</li>
+                      <li>{playerLevel < 5 ? "Reach Level 5 to unlock" : "Multiplication & Division tier"}</li>
+                      <li>Includes Multiplication (×) & Division (÷)</li>
                       <li>2 Banana API puzzles</li>
-                      <li>Earn 25 points</li>
+                      <li>Earn +60 points per level</li>
+                      <li>{playerLevel < 5 ? "Locked until Level 5" : "Unlocks Hard at Level 10"}</li>
                     </ul>
                     <button
                       type="button"
-                      className="banana-card-btn btn-medium"
+                      className={`banana-card-btn ${playerLevel < 5 ? "btn-locked" : "btn-medium"}`}
+                      disabled={playerLevel < 5}
                       onClick={() => handleStartLevel("medium")}
                     >
-                      Start Medium
+                      {playerLevel < 5 ? "🔒 Locked (Reach Level 5)" : "Start Medium ▶"}
                     </button>
                   </div>
 
-                  {/* Card 3: Hard */}
-                  <div className="banana-card-box card-hard">
+                  {/* Card 3: Hard - Unlocked at Level 10+ */}
+                  <div className={`banana-card-box card-hard ${playerLevel < 10 ? "card-locked" : ""}`}>
                     <div className="level-art-wrap">
-                      <HardMonkeyIllustration size={85} />
+                      {playerLevel < 10 ? (
+                        <LockedLevelIllustration size={90} unlockLevel={10} />
+                      ) : (
+                        <HardMonkeyIllustration size={90} />
+                      )}
                     </div>
-                    <h2 className="level-card-name title-hard">Hard</h2>
-                    <div className="level-pill-badge pill-hard">3 puzzles • 45 points</div>
+                    <h2 className={`level-card-name ${playerLevel < 10 ? "title-locked" : "title-hard"}`}>
+                      Hard {playerLevel < 10 && "🔒"}
+                    </h2>
+                    <div className={`level-pill-badge ${playerLevel < 10 ? "pill-locked" : "pill-hard"}`}>
+                      {playerLevel < 10 ? "🔒 LOCKED • Reach Level 10" : "3 puzzles • 100 points"}
+                    </div>
                     <ul className="level-features-list">
-                      <li>For experienced players</li>
+                      <li>{playerLevel < 10 ? "Reach Level 10 to unlock" : "Master BODMAS Operator tier"}</li>
+                      <li>Multi-Operator (×, ÷, +, −) equations</li>
                       <li>3 Banana API puzzles</li>
-                      <li>Earn 45 points</li>
+                      <li>Earn +100 points per level</li>
+                      <li>{playerLevel < 10 ? "Locked until Level 10" : "🏆 Master Champion Trophy"}</li>
                     </ul>
                     <button
                       type="button"
-                      className="banana-card-btn btn-hard"
+                      className={`banana-card-btn ${playerLevel < 10 ? "btn-locked" : "btn-hard"}`}
+                      disabled={playerLevel < 10}
                       onClick={() => handleStartLevel("hard")}
                     >
-                      Start Hard
+                      {playerLevel < 10 ? "🔒 Locked (Reach Level 10)" : "Start Hard ▶"}
                     </button>
                   </div>
                 </div>
               </section>
             </div>
-
-            {/* Footer for Page 1 */}
-            <footer className="choose-level-footer gd-footer-cyan">
-              Choose Level
-            </footer>
           </>
         )}
 
@@ -759,23 +995,27 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                   </div>
                 </div>
 
-                {/* Lives Card (3 Hearts: ❤️❤️❤️, decreases strictly 1 on wrong or timeout) */}
+                {/* Lives Card (3 Hearts: ❤️❤️❤️, shows heart break 💔 animation then loss to 🤍) */}
                 <div className="banana-widget-card lives-widget">
                   <div className="widget-icon-wrap circle-lives">
-                    <span>❤️</span>
+                    <span>{breakingHeartIndex !== null ? "💔" : "❤️"}</span>
                   </div>
                   <div className="widget-text-col">
                     <span className="widget-label">Lives ({lives}/3)</span>
                     <div className="banana-hearts-row">
-                      <span className={`banana-heart ${lives >= 1 ? "full" : "empty"}`}>
-                        {lives >= 1 ? "❤️" : "🤍"}
-                      </span>
-                      <span className={`banana-heart ${lives >= 2 ? "full" : "empty"}`}>
-                        {lives >= 2 ? "❤️" : "🤍"}
-                      </span>
-                      <span className={`banana-heart ${lives >= 3 ? "full" : "empty"}`}>
-                        {lives >= 3 ? "❤️" : "🤍"}
-                      </span>
+                      {[1, 2, 3].map((heartNum, idx) => {
+                        const isBreaking = breakingHeartIndex === idx;
+                        const isFull = lives >= heartNum && !isBreaking;
+                        return (
+                          <span
+                            key={heartNum}
+                            className={`banana-heart ${isBreaking ? "heart-breaking" : isFull ? "full" : "empty"}`}
+                            title={isBreaking ? "Heart breaking!" : isFull ? "Active life" : "Lost life"}
+                          >
+                            {isBreaking ? "💔" : isFull ? "❤️" : "🤍"}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -835,14 +1075,26 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                 {levelCompletedMessage && (
                   <div className="banana-celebration-banner">
                     <p>{levelCompletedMessage}</p>
+                    <button
+                      type="button"
+                      className="banana-next-level-btn"
+                      onClick={() => {
+                        playClickSound();
+                        setCurrentPage("levels");
+                      }}
+                    >
+                      🗺️ Choose Next Level {playerLevel >= 10 ? "(Hard Unlocked! 👑)" : playerLevel >= 5 ? "(Medium Unlocked! 🔓)" : "▶"}
+                    </button>
                   </div>
                 )}
 
                 {/* Banana Game Challenge Box */}
                 <div className="banana-puzzle-card-neat">
                   <div className="banana-puzzle-header">
-                    <h2>Banana Puzzle Challenge</h2>
-                    <p>Solve the Banana Math Equation to find the missing single digit (0–9).</p>
+                    <h2>Banana Math Equation Challenge</h2>
+                    <p>
+                      Solve the equation using <strong>BODMAS</strong> rules (calculate Multiplication × & Division ÷ first) to find the missing single digit (0–9).
+                    </p>
                   </div>
 
                   {/* Equation Visual Area (ONLY Banana Game Equation, NO cartoon puzzle) */}
@@ -856,7 +1108,8 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                       <div className="equation-image-card">
                         <div className="equation-badge-row">
                           <span className="equation-source-tag">⚡ Live Banana API Puzzle</span>
-                          <span className="equation-hint-tag">Find the missing digit value: ?</span>
+                          <span className="equation-hint-tag">📐 × & ÷ first (BODMAS)</span>
+                          <span className="equation-hint-tag">Missing Digit: ? (0–9)</span>
                         </div>
                         <img
                           src={livePuzzle.imageUrl}
@@ -870,6 +1123,14 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                       </div>
                     )}
                   </div>
+
+                  {/* Heart Break Visual Banner */}
+                  {showHeartBreakAlert && (
+                    <div className="heart-break-floating-alert">
+                      <span className="heart-break-emoji-shake">💔</span>
+                      <strong className="heart-break-text">HEART BROKEN! -1 LIFE</strong>
+                    </div>
+                  )}
 
                   {/* Feedback Banner (Correct, Wrong, or Time Out) */}
                   {feedback && (
@@ -927,20 +1188,6 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                       {submitting ? "Checking..." : "Submit Answer"}
                     </button>
                   </form>
-
-                  {/* Out of Lives Game Over Card */}
-                  {lives <= 0 && (
-                    <div className="banana-gameover-card">
-                      <p>💔 Out of lives! Click below to reset your challenge.</p>
-                      <button
-                        type="button"
-                        className="banana-restart-btn"
-                        onClick={handleRestartChallenge}
-                      >
-                        🔄 Restart Challenge (3 Lives Restored)
-                      </button>
-                    </div>
-                  )}
                 </div>
               </section>
 
@@ -989,11 +1236,6 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                 </div>
               </aside>
             </div>
-
-            {/* Footer for Page 2 */}
-            <footer className="choose-level-footer gd-footer-cyan">
-              Game Dashboard
-            </footer>
           </>
         )}
 
@@ -1142,10 +1384,6 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                   })}
               </div>
             </div>
-
-            <footer className="choose-level-footer gd-footer-cyan">
-              Banana Quest - Achievements & Milestones
-            </footer>
           </>
         )}
 
@@ -1159,7 +1397,7 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                 <div className="banana-profile-avatar" aria-hidden="true">
                   {currentAvatarInfo.emoji}
                 </div>
-                <p className="banana-profile-welcome">Welcome to Banana Quest,</p>
+                <p className="banana-profile-welcome">Welcome to Bungy Banana,</p>
                 <h1 className="banana-profile-name">{user?.username || "Player"}!</h1>
                 <p className="banana-profile-title">{user?.title || currentAvatarInfo.title}</p>
 
@@ -1222,10 +1460,70 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                 </div>
               </section>
             </div>
-            <footer className="choose-level-footer gd-footer-cyan">
-              Banana Quest
-            </footer>
           </>
+        )}
+
+        {/* =========================================================================
+            OUT OF LIVES: POP-UP MODAL OVERLAY (Viewport Centered)
+            ========================================================================= */}
+        {lives <= 0 && (
+          <div className="banana-gameover-overlay" role="dialog" aria-modal="true" aria-label="Game Over Dialog">
+            <div className="banana-gameover-modal">
+              <div className="go-skull-badge">
+                <span className="go-skull-icon">💀</span>
+                <span className="go-broken-heart">💔</span>
+              </div>
+              <h2 className="go-title">GAME OVER</h2>
+              <p className="go-description">
+                You lost all 3 lives! Don't worry — jungle champions dust off and try again!
+              </p>
+
+              <div className="go-summary-strip">
+                <div className="go-stat-cell">
+                  <span className="go-stat-label">TOTAL SCORE</span>
+                  <strong className="go-stat-value">{score} pts</strong>
+                </div>
+                <div className="go-stat-cell">
+                  <span className="go-stat-label">CURRENT LEVEL</span>
+                  <strong className="go-stat-value">Level {playerLevel}</strong>
+                </div>
+                <div className="go-stat-cell">
+                  <span className="go-stat-label">DIFFICULTY</span>
+                  <strong className="go-stat-value">{currentConfig?.title || "Easy"}</strong>
+                </div>
+              </div>
+
+              <div className="go-button-group">
+                <button
+                  type="button"
+                  className="go-btn go-btn-retry"
+                  onClick={handleRestartChallenge}
+                >
+                  🔄 Try Again (Restore 3 Lives)
+                </button>
+                <button
+                  type="button"
+                  className="go-btn go-btn-new-game"
+                  onClick={() => {
+                    handleRestartChallenge();
+                    setCurrentPage("levels");
+                  }}
+                >
+                  🗺️ Try New Game (Choose Level)
+                </button>
+                <button
+                  type="button"
+                  className="go-btn go-btn-leaderboard"
+                  onClick={() => {
+                    playClickSound();
+                    navigate("/leaderboard");
+                  }}
+                >
+                  🏆 View Leaderboard
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </main>

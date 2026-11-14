@@ -28,6 +28,8 @@ export function publicUser(user) {
     highestStreak: user.highestStreak ?? 0,
     badges: user.badges || ["Banana Rookie"],
     role: user.role,
+    playerLevel: user.playerLevel ?? 1,
+    dayStreak: user.dayStreak ?? 1,
     totalPoints: user.totalPoints ?? 0,
     gamesPlayed: user.gamesPlayed ?? 0,
     gamesWon: user.gamesWon ?? 0,
@@ -182,13 +184,53 @@ export async function updateProfile(req, res) {
   }
 }
 
+export async function recordScore(req, res) {
+  try {
+    const { pointsEarned, playerLevel, streak, dayStreak, won } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (typeof pointsEarned === "number") {
+      if (pointsEarned === 0 && playerLevel === 1) {
+        user.totalPoints = 0;
+        user.playerLevel = 1;
+        user.highestStreak = 0;
+      } else if (pointsEarned > 0) {
+        user.totalPoints = (user.totalPoints || 0) + pointsEarned;
+      }
+    }
+    if (typeof playerLevel === "number") {
+      user.playerLevel = playerLevel;
+    }
+    if (typeof streak === "number" && streak > (user.highestStreak || 0)) {
+      user.highestStreak = streak;
+    }
+    if (typeof dayStreak === "number" && dayStreak > 0) {
+      user.dayStreak = dayStreak;
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    user.lastActiveDate = todayStr;
+    user.gamesPlayed = (user.gamesPlayed || 0) + 1;
+    if (won) {
+      user.gamesWon = (user.gamesWon || 0) + 1;
+    }
+
+    await user.save();
+    return res.json({ message: "Score recorded successfully.", user: publicUser(user) });
+  } catch (error) {
+    console.error("Record score error:", error);
+    return res.status(500).json({ message: "Could not record score." });
+  }
+}
+
 export async function getGlobalLeaderboard(req, res) {
   try {
     const timeframe = String(req.query.timeframe || "allTime");
     const currentUserId = req.user?._id;
 
     const allPlayers = await User.find({})
-      .select("username avatar title totalPoints gamesPlayed gamesWon highestStreak badges")
+      .select("username avatar title totalPoints gamesPlayed gamesWon highestStreak badges playerLevel")
       .lean();
 
     const rankedPlayers = allPlayers.map((p) => {
@@ -208,6 +250,7 @@ export async function getGlobalLeaderboard(req, res) {
         username: p.username,
         avatar: p.avatar || "banana-warrior",
         title: p.title || "Banana Novice",
+        playerLevel: p.playerLevel || 1,
         totalPoints: points,
         gamesPlayed: p.gamesPlayed || 0,
         gamesWon: wins,
@@ -241,6 +284,7 @@ export async function getGlobalLeaderboard(req, res) {
         username: "Alex",
         avatar: "banana-warrior",
         title: "Puzzle Explorer",
+        playerLevel: 1,
         totalPoints: 0,
         highestStreak: 0,
         gamesWon: 0
@@ -251,12 +295,13 @@ export async function getGlobalLeaderboard(req, res) {
     const timeframe = String(req.query.timeframe || "allTime");
     const mult = timeframe === "daily" ? 0.3 : timeframe === "weekly" ? 0.7 : 1.0;
 
+    // Fresh Season 1 Starting Leaderboard (Aligned with new Level 5 unlock & 30/60 pts system)
     const fallbackPlayers = [
-      { id: "p1", username: "BananaChamp", avatar: "banana-warrior", title: "Potassium Overlord 👑", totalPoints: Math.round(2450 * mult), highestStreak: 7, gamesWon: 11 },
-      { id: "p2", username: "TutorReviewer", avatar: "detective-banana", title: "Inspector Peel 🕵️", totalPoints: Math.round(1850 * mult), highestStreak: 5, gamesWon: 6 },
-      { id: "p3", username: "CyberMonk", avatar: "cyber-banana", title: "Cyber Ape 🚀", totalPoints: Math.round(1490 * mult), highestStreak: 4, gamesWon: 4 },
-      { id: "p4", username: "Alex", avatar: "banana-warrior", title: "Puzzle Explorer", totalPoints: Math.round(120 * mult), highestStreak: 3, gamesWon: 2 },
-      { id: "p5", username: "FruitNinja", avatar: "ninja-banana", title: "Shadow Slicer 🥷", totalPoints: Math.round(95 * mult), highestStreak: 2, gamesWon: 1 }
+      { id: "p1", username: "BananaChamp", avatar: "banana-warrior", title: "Potassium Explorer 👑", playerLevel: 5, totalPoints: Math.round(180 * mult), highestStreak: 4, gamesWon: 4 },
+      { id: "p2", username: "JungleRacer", avatar: "detective-banana", title: "Puzzle Explorer", playerLevel: 4, totalPoints: Math.round(120 * mult), highestStreak: 3, gamesWon: 3 },
+      { id: "p3", username: "CyberMonkey", avatar: "cyber-banana", title: "Banana Novice", playerLevel: 3, totalPoints: Math.round(90 * mult), highestStreak: 3, gamesWon: 2 },
+      { id: "p4", username: "FruitNinja", avatar: "ninja-banana", title: "Banana Novice", playerLevel: 2, totalPoints: Math.round(60 * mult), highestStreak: 2, gamesWon: 1 },
+      { id: "p5", username: "Alex", avatar: "banana-warrior", title: "Banana Rookie", playerLevel: 1, totalPoints: Math.round(30 * mult), highestStreak: 1, gamesWon: 1 }
     ];
 
     fallbackPlayers.sort((a, b) => b.totalPoints - a.totalPoints);
@@ -267,6 +312,24 @@ export async function getGlobalLeaderboard(req, res) {
       leaderboard,
       myStats: leaderboard.find((p) => p.username === "Alex") || leaderboard[0]
     });
+  }
+}
+
+export async function resetLeaderboardScores(req, res) {
+  try {
+    await User.updateMany({}, {
+      $set: {
+        totalPoints: 0,
+        playerLevel: 1,
+        highestStreak: 0,
+        gamesPlayed: 0,
+        gamesWon: 0
+      }
+    });
+    return res.json({ message: "Leaderboard reset successfully for a fresh season." });
+  } catch (error) {
+    console.error("Leaderboard reset error:", error);
+    return res.status(500).json({ message: "Could not reset leaderboard." });
   }
 }
 

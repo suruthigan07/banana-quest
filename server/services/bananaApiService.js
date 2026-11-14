@@ -89,10 +89,10 @@ export function formatBananaAsQuestion(puzzle, index = 1) {
   const sol = Math.max(0, Math.min(9, puzzle.solution));
 
   return {
-    question: `Solve the Banana Math Equation! Find the missing single digit (0-9):`,
+    question: `Solve the Banana Math Equation (with multiplication ×, division ÷, addition +, and subtraction -). Find the missing digit (0-9):`,
     options: digits,
     correctAnswerIndex: sol,
-    explanation: `The correct banana equation value is ${sol}.`,
+    explanation: `The correct banana equation solution using BODMAS (multiplication × and division ÷ first) is ${sol}.`,
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",

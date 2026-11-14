@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { loginUser, socialLoginUrl } from "../services/authService";
 import BananaBackground from "../components/BananaBackground";
+import BungyBananaLogo from "../components/BungyBananaLogo";
 import { MonkeyBannerIllustration } from "../components/LevelIllustrations";
 import { playClickSound, playStreakSound } from "../utils/audio";
 
@@ -58,9 +59,9 @@ export default function Login({ onLogin }) {
         {/* Left panel — branding */}
         <div className="bq-auth-left">
           <div className="bq-auth-monkey">
-            <MonkeyBannerIllustration size={120} />
+            <BungyBananaLogo size={100} showText={false} />
           </div>
-          <h2 className="bq-auth-brand">BANANA QUEST</h2>
+          <h2 className="bq-auth-brand">BUNGY BANANA</h2>
           <p className="bq-auth-tagline">Solve puzzles. Earn bananas. Climb the leaderboard.</p>
           <div className="bq-auth-features">
             <div className="bq-auth-feat">🍌 Banana Math Puzzles</div>
@@ -124,7 +125,7 @@ export default function Login({ onLogin }) {
           </a>
 
           <p className="bq-auth-footer-text">
-            New to Banana Quest? <Link to="/register">Create an account</Link>
+            New to Bungy Banana? <Link to="/register">Create an account</Link>
           </p>
         </div>
       </div>

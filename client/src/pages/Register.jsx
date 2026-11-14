@@ -64,7 +64,7 @@ export default function Register({ onLogin }) {
           <div className="bq-auth-monkey">
             <MonkeyBannerIllustration size={120} />
           </div>
-          <h2 className="bq-auth-brand">BANANA QUEST</h2>
+          <h2 className="bq-auth-brand">BUNGY BANANA</h2>
           <p className="bq-auth-tagline">Join thousands of players solving banana math puzzles!</p>
           <div className="bq-auth-features">
             <div className="bq-auth-feat">🍌 Banana Math Puzzles</div>

@@ -340,7 +340,7 @@ export default function GameRoom({ user }) {
                 disabled={busy}
                 onClick={handleStart}
               >
-                {busy ? "Starting Quest..." : "⚔️ START BANANA QUEST"}
+                {busy ? "Starting Quest..." : "⚔️ START BUNGY BANANA"}
               </button>
             ) : (
               <div className="guest-waiting-msg">
