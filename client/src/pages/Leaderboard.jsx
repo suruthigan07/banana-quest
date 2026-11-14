@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getLeaderboard, getCurrentUser } from "../services/authService";
 import BananaBackground from "../components/BananaBackground";
+import BungyBananaLogo from "../components/BungyBananaLogo";
 import { MonkeyBannerIllustration } from "../components/LevelIllustrations";
 import { AVATAR_OPTIONS } from "../components/AvatarSelector";
 import { playClickSound } from "../utils/audio";
@@ -58,8 +59,8 @@ export default function Leaderboard() {
         <header className="banana-topbar">
           <div className="banana-topbar-left">
             <div className="banana-window-title">
-              <Link to="/" className="banana-brand-text" aria-label="Banana Quest home">
-                BANANA QUEST
+              <Link to="/" className="banana-brand-text" aria-label="Bungy Banana home">
+                <BungyBananaLogo size={36} showText={true} />
               </Link>
             </div>
           </div>
@@ -115,7 +116,7 @@ export default function Leaderboard() {
               </div>
               <div className="leaderboard-hero-text">
                 <span className="leaderboard-eyebrow">WORLD HALL OF FAME</span>
-                <h1>Banana Quest Leaderboard</h1>
+                <h1>Bungy Banana Leaderboard</h1>
                 <p>The top equation solvers and banana champions across the jungle.</p>
               </div>
             </div>
@@ -142,6 +143,12 @@ export default function Leaderboard() {
               </div>
 
               <div className="my-stats-strip">
+                <div className="my-stat-box">
+                  <span className="stat-label">Level</span>
+                  <strong className="stat-level-val" style={{ color: "#FACC15" }}>
+                    ⭐ Lvl {myStats?.playerLevel ?? user?.playerLevel ?? 1}
+                  </strong>
+                </div>
                 <div className="my-stat-box">
                   <span className="stat-label">Best Score</span>
                   <strong className="stat-score-val">{myStats?.totalPoints ?? user?.totalPoints ?? 0} pts</strong>
@@ -208,13 +215,14 @@ export default function Leaderboard() {
           {loading ? (
             <div className="leaderboard-loading-box">
               <span className="loading-banana-spin">🍌</span>
-              <p>Fetching {timeframe} rankings from Banana Quest server...</p>
+              <p>Fetching {timeframe} rankings from Bungy Banana server...</p>
             </div>
           ) : (
             <div className="leaderboard-table-neat">
               <div className="table-head">
                 <span className="th-rank">Rank</span>
                 <span className="th-player">Player Persona</span>
+                <span className="th-level">Level</span>
                 <span className="th-title">Title</span>
                 <span className="th-score">Score</span>
                 <span className="th-streak">Streak</span>
@@ -261,6 +269,23 @@ export default function Leaderboard() {
                           </div>
                         </div>
 
+                        <span className="col-level">
+                          <span
+                            className="level-badge-pill"
+                            style={{
+                              background: "rgba(250, 204, 21, 0.15)",
+                              color: "#FACC15",
+                              border: "1px solid rgba(250, 204, 21, 0.4)",
+                              borderRadius: "999px",
+                              padding: "2px 8px",
+                              fontSize: "11px",
+                              fontWeight: "700"
+                            }}
+                          >
+                            Lvl {p.playerLevel || 1}
+                          </span>
+                        </span>
+
                         <span className="col-title">{p.title || "Banana Novice"}</span>
 
                         <strong className="col-score">
@@ -282,13 +307,6 @@ export default function Leaderboard() {
             </div>
           )}
         </div>
-
-        {/* =========================================================================
-            FOOTER BANNER
-            ========================================================================= */}
-        <footer className="choose-level-footer gd-footer-cyan">
-          Banana Quest - Hall of Fame & Rankings
-        </footer>
       </div>
     </main>
   );

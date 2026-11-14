@@ -416,7 +416,7 @@ export async function getRandomPuzzle(req, res) {
         solution: puzzle.solution,
         source: puzzle.source || "live_api",
         category: "Banana Math",
-        prompt: "How many bananas are shown in the image?"
+        prompt: "Solve the Banana Math Equation with multiplication (×), division (÷), addition, and subtraction using BODMAS to find the missing digit (0-9)."
       }
     });
   } catch (error) {

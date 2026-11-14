@@ -35,7 +35,7 @@ function AppContent() {
     return (
       <div className="page-center">
         <div className="loading-banana-spinner">🍌</div>
-        <p>Connecting to Banana Quest...</p>
+        <p>Connecting to Bungy Banana...</p>
       </div>
     );
   }

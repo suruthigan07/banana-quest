@@ -2,7 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import passport, { facebookConfigured, googleConfigured } from "../config/passport.js";
 import {
-  register, login, logout, me, socialLogin, updateProfile, getGlobalLeaderboard
+  register, login, logout, me, socialLogin, updateProfile, getGlobalLeaderboard, recordScore, resetLeaderboardScores
 } from "../controllers/authController.js";
 import { requireAuth, optionalAuth } from "../middleware/authMiddleware.js";
 
@@ -21,7 +21,9 @@ router.post("/login", authLimiter, login);
 router.post("/logout", requireAuth, logout);
 router.get("/me", requireAuth, me);
 router.put("/profile", requireAuth, updateProfile);
+router.post("/score", requireAuth, recordScore);
 router.get("/leaderboard", optionalAuth, getGlobalLeaderboard);
+router.post("/leaderboard/reset", resetLeaderboardScores);
 
 router.get(
   "/google",

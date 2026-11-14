@@ -56,6 +56,9 @@ const userSchema = new mongoose.Schema(
       }
     },
     role: { type: String, enum: ["player", "admin"], default: "player" },
+    playerLevel: { type: Number, default: 1 },
+    dayStreak: { type: Number, default: 1 },
+    lastActiveDate: { type: String, default: null },
     totalPoints: { type: Number, default: 0 },
     gamesPlayed: { type: Number, default: 0 },
     gamesWon: { type: Number, default: 0 },
