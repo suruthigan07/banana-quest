@@ -295,13 +295,13 @@ export async function getGlobalLeaderboard(req, res) {
     const timeframe = String(req.query.timeframe || "allTime");
     const mult = timeframe === "daily" ? 0.3 : timeframe === "weekly" ? 0.7 : 1.0;
 
-    // Fresh Season 1 Starting Leaderboard (Aligned with new Level 5 unlock & 30/60 pts system)
+    // Fresh Season 1 Starting Leaderboard starting from 0 points
     const fallbackPlayers = [
-      { id: "p1", username: "BananaChamp", avatar: "banana-warrior", title: "Potassium Explorer 👑", playerLevel: 5, totalPoints: Math.round(180 * mult), highestStreak: 4, gamesWon: 4 },
-      { id: "p2", username: "JungleRacer", avatar: "detective-banana", title: "Puzzle Explorer", playerLevel: 4, totalPoints: Math.round(120 * mult), highestStreak: 3, gamesWon: 3 },
-      { id: "p3", username: "CyberMonkey", avatar: "cyber-banana", title: "Banana Novice", playerLevel: 3, totalPoints: Math.round(90 * mult), highestStreak: 3, gamesWon: 2 },
-      { id: "p4", username: "FruitNinja", avatar: "ninja-banana", title: "Banana Novice", playerLevel: 2, totalPoints: Math.round(60 * mult), highestStreak: 2, gamesWon: 1 },
-      { id: "p5", username: "Alex", avatar: "banana-warrior", title: "Banana Rookie", playerLevel: 1, totalPoints: Math.round(30 * mult), highestStreak: 1, gamesWon: 1 }
+      { id: "p1", username: "BananaChamp", avatar: "banana-warrior", title: "Potassium Explorer 👑", playerLevel: 1, totalPoints: 0, highestStreak: 0, gamesWon: 0 },
+      { id: "p2", username: "JungleRacer", avatar: "detective-banana", title: "Puzzle Explorer", playerLevel: 1, totalPoints: 0, highestStreak: 0, gamesWon: 0 },
+      { id: "p3", username: "CyberMonkey", avatar: "cyber-banana", title: "Banana Novice", playerLevel: 1, totalPoints: 0, highestStreak: 0, gamesWon: 0 },
+      { id: "p4", username: "FruitNinja", avatar: "ninja-banana", title: "Banana Novice", playerLevel: 1, totalPoints: 0, highestStreak: 0, gamesWon: 0 },
+      { id: "p5", username: "Alex", avatar: "banana-warrior", title: "Banana Rookie", playerLevel: 1, totalPoints: 0, highestStreak: 0, gamesWon: 0 }
     ];
 
     fallbackPlayers.sort((a, b) => b.totalPoints - a.totalPoints);

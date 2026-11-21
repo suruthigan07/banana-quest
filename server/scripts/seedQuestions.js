@@ -14,7 +14,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png",
     isActive: true
   },
   {
@@ -25,7 +25,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2e4ce2b69c56f551f8a0a07145n51.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t2e4ce2b69c56f551f8a0a07145n51.png",
     isActive: true
   },
   {
@@ -36,7 +36,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2fcf13d2cfa31c578988691dc9n58.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t2fcf13d2cfa31c578988691dc9n58.png",
     isActive: true
   },
   {
@@ -47,7 +47,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2806fe068545e85c292150fe1fn15.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t2806fe068545e85c292150fe1fn15.png",
     isActive: true
   },
   {
@@ -58,7 +58,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2a71d798ba4f5f58dfcb68c6e0n52.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t2a71d798ba4f5f58dfcb68c6e0n52.png",
     isActive: true
   },
   {
@@ -69,7 +69,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t203fe926be57dfceb8a3e878ben24.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t203fe926be57dfceb8a3e878ben24.png",
     isActive: true
   },
   {
@@ -80,7 +80,7 @@ const bananaAndCsQuestions = [
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
-    imageUrl: "https://www.sanfoh.com/uob/banana/data/t2307efcbfe1941d8e1c6e4e047n89.png",
+    imageUrl: "https://marcconrad.com/uob/banana/data/t2307efcbfe1941d8e1c6e4e047n89.png",
     isActive: true
   },
   // Enterprise Software & CS Questions
