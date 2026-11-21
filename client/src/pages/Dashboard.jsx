@@ -48,8 +48,7 @@ const LEVEL_CONFIGS = {
     rewardPoints: 60,
     timeLimit: 88,
     bulletPoints: [
-      "Multiplication (×) & Division (÷)",
-      "BODMAS order of operations",
+      "More challenging equations",
       "2 Banana API equations",
       "Earn +60 points per level",
       "Unlocks Hard at Level 10"
@@ -66,8 +65,7 @@ const LEVEL_CONFIGS = {
     rewardPoints: 100,
     timeLimit: 120,
     bulletPoints: [
-      "Advanced Multi-Operator (×, ÷, +, −)",
-      "Speed BODMAS calculations",
+      "Advanced Multi-Operator equations",
       "3 Banana API equations",
       "Earn +100 points per level",
       "🏆 Jungle Champion Trophy"
@@ -91,14 +89,15 @@ export default function Dashboard({ user: initialUser, onLogout }) {
   // Persistent Player Score & Progression
   const [score, setScore] = useState(() => {
     try {
-      if (!localStorage.getItem("bq_v2_level_lock_reset")) {
+      if (!localStorage.getItem("bq_leaderboard_fresh_v10")) {
+        localStorage.setItem(`bq_score_${userId}`, "0");
         return 0;
       }
       const saved = localStorage.getItem(`bq_score_${userId}`);
       if (saved !== null && !isNaN(Number(saved))) {
         return Number(saved);
       }
-    } catch (e) {}
+    } catch {}
     return 0;
   });
 
@@ -116,8 +115,8 @@ export default function Dashboard({ user: initialUser, onLogout }) {
   const [playerLevel, setPlayerLevel] = useState(() => {
     try {
       // Automatic fresh start reset so Medium & Hard lock again following leaderboard restart
-      if (!localStorage.getItem("bq_v2_level_lock_reset")) {
-        localStorage.setItem("bq_v2_level_lock_reset", "true");
+      if (!localStorage.getItem("bq_leaderboard_fresh_v10")) {
+        localStorage.setItem("bq_leaderboard_fresh_v10", "true");
         Object.keys(localStorage).forEach((k) => {
           if (k.startsWith("bq_level_")) localStorage.setItem(k, "1");
           if (k.startsWith("bq_score_")) localStorage.setItem(k, "0");
@@ -234,7 +233,7 @@ export default function Dashboard({ user: initialUser, onLogout }) {
       console.warn("Banana API fallback notice:", err.message);
       // Fallback puzzle in case offline
       setLivePuzzle({
-        imageUrl: "https://www.sanfoh.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png",
+        imageUrl: "https://marcconrad.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png",
         solution: 5,
         source: "cached_fallback"
       });
@@ -955,7 +954,7 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                       {playerLevel < 10 ? "🔒 LOCKED • Reach Level 10" : "3 puzzles • 100 points"}
                     </div>
                     <ul className="level-features-list">
-                      <li>{playerLevel < 10 ? "Reach Level 10 to unlock" : "Master BODMAS Operator tier"}</li>
+                      <li>{playerLevel < 10 ? "Reach Level 10 to unlock" : "Master Operator tier"}</li>
                       <li>Multi-Operator (×, ÷, +, −) equations</li>
                       <li>3 Banana API puzzles</li>
                       <li>Earn +100 points per level</li>
@@ -1093,7 +1092,7 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                   <div className="banana-puzzle-header">
                     <h2>Banana Math Equation Challenge</h2>
                     <p>
-                      Solve the equation using <strong>BODMAS</strong> rules (calculate Multiplication × & Division ÷ first) to find the missing single digit (0–9).
+                      Look at the puzzle below and enter your answer to find the missing single digit (0–9).
                     </p>
                   </div>
 
@@ -1108,14 +1107,16 @@ export default function Dashboard({ user: initialUser, onLogout }) {
                       <div className="equation-image-card">
                         <div className="equation-badge-row">
                           <span className="equation-source-tag">⚡ Live Banana API Puzzle</span>
-                          <span className="equation-hint-tag">📐 × & ÷ first (BODMAS)</span>
                           <span className="equation-hint-tag">Missing Digit: ? (0–9)</span>
                         </div>
-                        <img
-                          src={livePuzzle.imageUrl}
-                          alt="Marc Conrad Banana Math Puzzle"
-                          className="banana-equation-img"
-                        />
+                        <div className="banana-crop-container" style={{ overflow: "hidden", borderRadius: "8px", maxHeight: "205px", display: "flex", justifyContent: "center", alignItems: "center", background: "#ffffff" }}>
+                          <img
+                            src={livePuzzle.imageUrl}
+                            alt="Banana Math Puzzle"
+                            className="banana-equation-img"
+                            style={{ marginTop: "-26px", maxWidth: "100%", maxHeight: "235px", objectFit: "contain" }}
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="equation-loading-placeholder">

@@ -14,18 +14,18 @@ const BANANA_API_URL = "https://marcconrad.com/uob/banana/api.php?out=json";
 
 // Built-in verified offline/fallback puzzle cache for extreme network resilience & offline demos
 const FALLBACK_BANANA_PUZZLES = [
-  { question: "https://www.sanfoh.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png", solution: 5 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2e4ce2b69c56f551f8a0a07145n51.png", solution: 1 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2fcf13d2cfa31c578988691dc9n58.png", solution: 8 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2806fe068545e85c292150fe1fn15.png", solution: 3 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2a71d798ba4f5f58dfcb68c6e0n52.png", solution: 7 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t203fe926be57dfceb8a3e878ben24.png", solution: 4 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2307efcbfe1941d8e1c6e4e047n89.png", solution: 9 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t264ffed0eb4e41416e788ee54en37.png", solution: 2 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2df2c19e5c4a5f33dc8f22faefn99.png", solution: 6 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2f0b093375cb47be7371d3c01bn86.png", solution: 0 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t2a382e88a00dc7cba2a3a8385en22.png", solution: 5 },
-  { question: "https://www.sanfoh.com/uob/banana/data/t261cf3e6396e838ffae2aa53bbn77.png", solution: 3 }
+  { question: "https://marcconrad.com/uob/banana/data/t2d6b18466c43301e0f9943042en95.png", solution: 5 },
+  { question: "https://marcconrad.com/uob/banana/data/t2e4ce2b69c56f551f8a0a07145n51.png", solution: 1 },
+  { question: "https://marcconrad.com/uob/banana/data/t2fcf13d2cfa31c578988691dc9n58.png", solution: 8 },
+  { question: "https://marcconrad.com/uob/banana/data/t2806fe068545e85c292150fe1fn15.png", solution: 3 },
+  { question: "https://marcconrad.com/uob/banana/data/t2a71d798ba4f5f58dfcb68c6e0n52.png", solution: 7 },
+  { question: "https://marcconrad.com/uob/banana/data/t203fe926be57dfceb8a3e878ben24.png", solution: 4 },
+  { question: "https://marcconrad.com/uob/banana/data/t2307efcbfe1941d8e1c6e4e047n89.png", solution: 9 },
+  { question: "https://marcconrad.com/uob/banana/data/t264ffed0eb4e41416e788ee54en37.png", solution: 2 },
+  { question: "https://marcconrad.com/uob/banana/data/t2df2c19e5c4a5f33dc8f22faefn99.png", solution: 6 },
+  { question: "https://marcconrad.com/uob/banana/data/t2f0b093375cb47be7371d3c01bn86.png", solution: 0 },
+  { question: "https://marcconrad.com/uob/banana/data/t2a382e88a00dc7cba2a3a8385en22.png", solution: 5 },
+  { question: "https://marcconrad.com/uob/banana/data/t261cf3e6396e838ffae2aa53bbn77.png", solution: 3 }
 ];
 
 /**
@@ -54,8 +54,11 @@ export async function fetchSingleBananaPuzzle(timeoutMs = 4000) {
       throw new Error("Invalid payload format received from Banana API");
     }
 
+    // Ensure all image URLs use marcconrad.com instead of www.sanfoh.com
+    const sanitizedQuestion = String(data.question).replace("www.sanfoh.com", "marcconrad.com");
+
     return {
-      question: data.question,
+      question: sanitizedQuestion,
       solution: Number(data.solution),
       source: "live_api"
     };
@@ -89,10 +92,10 @@ export function formatBananaAsQuestion(puzzle, index = 1) {
   const sol = Math.max(0, Math.min(9, puzzle.solution));
 
   return {
-    question: `Solve the Banana Math Equation (with multiplication ×, division ÷, addition +, and subtraction -). Find the missing digit (0-9):`,
+    question: `Solve the Banana Math Equation. Find the missing single digit (0-9):`,
     options: digits,
     correctAnswerIndex: sol,
-    explanation: `The correct banana equation solution using BODMAS (multiplication × and division ÷ first) is ${sol}.`,
+    explanation: `The correct banana equation value is ${sol}.`,
     category: "Banana API",
     difficulty: "Arcade",
     questionType: "banana",
